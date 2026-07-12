@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Traffic Control System - BCA 6th Sem Project</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Security Login Portal -->
+    <div class="login-wrapper" id="login-portal">
+        <!-- Login Card -->
+        <div class="login-card glass" id="login-card">
+            <div class="login-header">
+                <div class="logo-icon">
+                    <i data-lucide="shield-check" class="neon-glow-icon"></i>
+                </div>
+                <h2>Security Gateway</h2>
+                <p class="subtitle" style="margin-top: 0.25rem;">Traffic Control Hub Authentication</p>
+            </div>
+            
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="username">User Identity</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user"></i>
+                        <input type="text" id="username" placeholder="Username" required autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="password">Security Access Key</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="password" placeholder="Password" required>
+                    </div>
+                </div>
+
+                <div class="login-hint" style="margin-top: 1rem; text-align: center; font-size: 0.75rem; color: var(--text-muted);">
+                    <span>Default credentials: <strong>admin</strong> / <strong>admin</strong></span>
+                </div>
+
+                <div id="login-error-msg" class="login-error" style="display: none; color: var(--danger); font-size: 0.75rem; margin-top: 1rem; text-align: center; font-family: var(--font-mono);">
+                    ❌ Invalid credentials. Please try again.
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block" style="width:100%; margin-top: 1.5rem;">
+                    <i data-lucide="key-round"></i> Authenticate System
+                </button>
+            </form>
+
+            <div class="register-toggle" style="margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                Don't have credentials? <a href="#" id="link-show-register" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create an Account</a>
+            </div>
+        </div>
+
+        <!-- Register Card -->
+        <div class="login-card glass" id="register-card" style="display: none;">
+            <div class="login-header">
+                <div class="logo-icon" style="background: linear-gradient(135deg, var(--success), var(--primary));">
+                    <i data-lucide="user-plus" class="neon-glow-icon"></i>
+                </div>
+                <h2>Register Account</h2>
+                <p class="subtitle" style="margin-top: 0.25rem;">Create Portal Security Credentials</p>
+            </div>
+            
+            <form id="register-form" class="login-form">
+                <div class="form-group">
+                    <label for="reg-fullname">Full Name</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user-check"></i>
+                        <input type="text" id="reg-fullname" placeholder="Enter Full Name" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="reg-username">Username / Roll No</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user"></i>
+                        <input type="text" id="reg-username" placeholder="Choose Username" required autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="reg-password">Access Password</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock"></i>
+                        <input type="password" id="reg-password" placeholder="Create Password" required>
+                    </div>
+                </div>
+
+                <div id="register-msg" style="display: none; font-size: 0.75rem; margin-top: 1.25rem; text-align: center; font-family: var(--font-mono);">
+                    <!-- Dynamic feedback messages go here -->
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block" style="width:100%; margin-top: 1.5rem;">
+                    <i data-lucide="user-plus"></i> Register & Create
+                </button>
+            </form>
+
+            <div class="register-toggle" style="margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                Already have credentials? <a href="#" id="link-show-login" style="color: var(--primary); text-decoration: none; font-weight: 600;">Back to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" style="display: none;">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i data-lucide="cpu" class="neon-glow-icon"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>SmartTraffic AI</h2>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="simulation">
+                    <i data-lucide="play-circle"></i>
+                    <span>Live Simulation</span>
+                </button>
+                <button class="nav-item" data-tab="analytics">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Analytics & Logs</span>
+                </button>
+                <button class="nav-item" data-tab="report">
+                    <i data-lucide="file-text"></i>
+                    <span>Project Report</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile" style="display: flex; align-items: center; width: 100%;">
+                    <div class="avatar" id="user-avatar">HB</div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">Harsh</span>
+                        <span class="user-role">BCA Student</span>
+                    </div>
+                    <button id="btn-logout" title="Log Out" style="margin-left: auto; padding: 6px 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--danger); font-size: 0.75rem; font-weight: 600; font-family: var(--font-sans); gap: 4px; transition: var(--transition);">
+                        <i data-lucide="log-out" style="width: 12px; height: 12px; color: var(--danger);"></i>
+                        <span>Logout 🚪</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Top Status Bar -->
+            <header class="header">
+                <div class="header-title">
+                    <h1 id="page-title">Dashboard</h1>
+                    <p class="subtitle" id="page-subtitle">Real-time monitoring and smart coordination of campus traffic flows.</p>
+                </div>
+                
+                <div class="quick-stats">
+                    <div class="q-stat-card">
+                        <span class="q-label">AI Status</span>
+                        <span class="q-value text-success" id="ai-badge">ACTIVE</span>
+                    </div>
+                    <div class="q-stat-card">
+                        <span class="q-label">Efficiency Gain</span>
+                        <span class="q-value text-cyan" id="efficiency-badge">+42.8%</span>
+                    </div>
+                    <div class="q-stat-card">
+                        <span class="q-label">System Mode</span>
+                        <span class="q-value" id="system-mode-badge">AI OPTIMIZED</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TAB CONTENT CONTAINER -->
+            <div class="tab-content-wrapper">
+                
+                <!-- 1. DASHBOARD VIEW -->
+                <div class="tab-pane active" id="tab-dashboard">
+                    <!-- Metrics Row -->
+                    <div class="metrics-grid">
+                        <div class="metric-card glass">
+                            <div class="card-header">
+                                <span class="metric-title">Average Wait Time</span>
+                                <div class="metric-icon bg-cyan-alpha">
+                                    <i data-lucide="clock" class="text-cyan"></i>
+                                </div>
+                            </div>
+                            <div class="metric-body">
+                                <h3 id="m-wait-time">12.4s</h3>
+                                <span class="trend text-success"><i data-lucide="arrow-down-right"></i> 34% vs Traditional</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card glass">
+                            <div class="card-header">
+                                <span class="metric-title">Vehicles Processed</span>
+                                <div class="metric-icon bg-green-alpha">
+                                    <i data-lucide="navigation" class="text-green"></i>
+                                </div>
+                            </div>
+                            <div class="metric-body">
+                                <h3 id="m-vehicles-count">248</h3>
+                                <span class="trend text-success"><i data-lucide="arrow-up-right"></i> +18% throughput</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card glass">
+                            <div class="card-header">
+                                <span class="metric-title">Congestion Level</span>
+                                <div class="metric-icon bg-orange-alpha">
+                                    <i data-lucide="activity" class="text-orange"></i>
+                                </div>
+                            </div>
+                            <div class="metric-body">
+                                <h3 id="m-congestion">LOW</h3>
+                                <span class="trend text-success" id="m-congestion-desc">Smooth Flow</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card glass">
+                            <div class="card-header">
+                                <span class="metric-title">Emissions Saved</span>
+                                <div class="metric-icon bg-purple-alpha">
+                                    <i data-lucide="leaf" class="text-purple"></i>
+                                </div>
+                            </div>
+                            <div class="metric-body">
+                                <h3 id="m-emissions">3.8 kg</h3>
+                                <span class="trend text-success"><i data-lucide="arrow-down-right"></i> Idle reduction</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Two Column Dashboard Layout -->
+                    <div class="dashboard-cols">
+                        <!-- Left: Live Overview Thumbnail / Control Summary -->
+                        <div class="col-main glass">
+                            <div class="card-title-bar">
+                                <h3>Active Intersection Monitor</h3>
+                                <span class="badge pulse-glow" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                                    <span class="live-dot"></span> LIVE PREVIEW
+                                </span>
+                            </div>
+                            <div class="preview-canvas-container">
+                                <canvas id="dashboardCanvasPreview" width="700" height="400"></canvas>
+                                <div class="preview-overlay">
+                                    <button class="btn btn-primary" id="btn-dashboard-to-sim">
+                                        <i data-lucide="maximize-2"></i> Enter Full Simulation View
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: AI Decision Log / Queue Status -->
+                        <div class="col-sidebar">
+                            <div class="glass card-flex h-half">
+                                <div class="card-title-bar">
+                                    <h3>Queue Analysis</h3>
+                                </div>
+                                <div class="queue-status-list">
+                                    <div class="queue-item">
+                                        <span class="lane-name">Main Gate (North)</span>
+                                        <div class="progress-bar-container">
+                                            <div class="progress-bar bg-cyan" id="q-north" style="width: 20%;"></div>
+                                        </div>
+                                        <span class="lane-count" id="q-count-north">2 Cars</span>
+                                    </div>
+                                    <div class="queue-item">
+                                        <span class="lane-name">Library Rd (South)</span>
+                                        <div class="progress-bar-container">
+                                            <div class="progress-bar bg-green" id="q-south" style="width: 10%;"></div>
+                                        </div>
+                                        <span class="lane-count" id="q-count-south">1 Car</span>
+                                    </div>
+                                    <div class="queue-item">
+                                        <span class="lane-name">Academic Blk (East)</span>
+                                        <div class="progress-bar-container">
+                                            <div class="progress-bar bg-orange" id="q-east" style="width: 45%;"></div>
+                                        </div>
+                                        <span class="lane-count" id="q-count-east">4 Cars</span>
+                                    </div>
+                                    <div class="queue-item">
+                                        <span class="lane-name">Hostel Zone (West)</span>
+                                        <div class="progress-bar-container">
+                                            <div class="progress-bar bg-purple" id="q-west" style="width: 30%;"></div>
+                                        </div>
+                                        <span class="lane-count" id="q-count-west">3 Cars</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass card-flex h-half mt-4">
+                                <div class="card-title-bar">
+                                    <h3>Real-Time AI Logs</h3>
+                                    <button class="btn btn-icon-only text-muted" id="btn-clear-logs">
+                                        <i data-lucide="trash-2"></i>
+                                    </button>
+                                </div>
+                                <div class="ai-logs-container" id="ai-logs">
+                                    <div class="log-entry system"><span class="log-time">[16:09:40]</span> System initialized in AI Adaptive Mode.</div>
+                                    <div class="log-entry ai"><span class="log-time">[16:09:45]</span> Sensor detected emergency vehicle in Academic Blk. Pre-empting signal sequence.</div>
+                                    <div class="log-entry success"><span class="log-time">[16:09:48]</span> Emergency priority cycle completed. Resuming optimization.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. FULL SIMULATION VIEW -->
+                <div class="tab-pane" id="tab-simulation">
+                    <div class="simulation-layout">
+                        <!-- Simulation Canvas Column -->
+                        <div class="simulation-canvas-wrapper glass">
+                            <div class="sim-header">
+                                <div class="sim-mode-toggle">
+                                    <button class="btn btn-toggle active" id="btn-mode-ai">AI Adaptive Mode</button>
+                                    <button class="btn btn-toggle" id="btn-mode-fixed">Fixed Timer Mode</button>
+                                    <button class="btn btn-toggle" id="btn-mode-manual">Manual Override</button>
+                                </div>
+                                <div class="sim-actions">
+                                    <button class="btn btn-outline" id="btn-sim-pause">
+                                        <i data-lucide="pause"></i> <span>Pause</span>
+                                    </button>
+                                    <button class="btn btn-outline" id="btn-sim-reset">
+                                        <i data-lucide="rotate-ccw"></i> <span>Reset</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="canvas-holder">
+                                <canvas id="trafficCanvasMain" width="800" height="500"></canvas>
+                            </div>
+
+                            <div class="sim-footer">
+                                <div class="quick-sim-buttons">
+                                    <button class="btn btn-danger" id="btn-spawn-ambulance">
+                                        <i data-lucide="ambulance"></i> Spawn Emergency (Ambulance)
+                                    </button>
+                                    <button class="btn btn-cyan" id="btn-spawn-pedestrian">
+                                        <i data-lucide="accessibility"></i> Simulate Pedestrian Crossing
+                                    </button>
+                                </div>
+                                <div class="speed-selector">
+                                    <span>Sim Speed:</span>
+                                    <button class="speed-btn active" data-speed="1">1x</button>
+                                    <button class="speed-btn" data-speed="2">2x</button>
+                                    <button class="speed-btn" data-speed="4">4x</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar Simulation Parameters -->
+                        <div class="simulation-sidebar glass">
+                            <h3>Simulation Controls</h3>
+                            <hr>
+                             
+                            <!-- Manual Signal Control Panel (visible only in manual mode) -->
+                            <div class="control-group" id="manual-controls-group" style="display: none; border: 1px dashed var(--border-active); padding: 1rem; border-radius: 12px; background-color: rgba(0, 242, 254, 0.02); margin-bottom: 0.5rem;">
+                                <h4 style="font-size: 0.75rem; text-transform: uppercase; color: var(--primary); letter-spacing: 0.5px; margin-bottom: 0.75rem;">Manual Signal Override</h4>
+                                <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                                    <button class="btn btn-primary" id="btn-manual-ns" style="width: 100%;">
+                                        <i data-lucide="arrow-up-down"></i> Force North-South Green
+                                    </button>
+                                    <button class="btn btn-primary" id="btn-manual-ew" style="width: 100%; background: linear-gradient(135deg, var(--purple), var(--primary-hover)); box-shadow: 0 4px 15px var(--purple-glow);">
+                                        <i data-lucide="arrow-left-right"></i> Force East-West Green
+                                    </button>
+                                </div>
+                                <span class="help-text" style="display: block; margin-top: 0.5rem; font-size: 0.65rem;">Instantly switches the green light to your selected direction and stops all opposing traffic.</span>
+                            </div>
+                            
+                            <div class="control-group">
+                                <div class="slider-label">
+                                    <span>Traffic Generation (Density)</span>
+                                </div>
+                                <div class="lane-slider-item mt-2">
+                                    <div class="slider-label">
+                                        <span>Main Gate (North)</span>
+                                        <span id="val-density-north">Medium (50%)</span>
+                                    </div>
+                                    <input type="range" class="slider" id="slider-density-north" min="0" max="100" value="50">
+                                </div>
+                                <div class="lane-slider-item mt-2">
+                                    <div class="slider-label">
+                                        <span>Library Rd (South)</span>
+                                        <span id="val-density-south">Medium (50%)</span>
+                                    </div>
+                                    <input type="range" class="slider" id="slider-density-south" min="0" max="100" value="50">
+                                </div>
+                                <div class="lane-slider-item mt-2">
+                                    <div class="slider-label">
+                                        <span>Academic Blk (East)</span>
+                                        <span id="val-density-east">Medium (50%)</span>
+                                    </div>
+                                    <input type="range" class="slider" id="slider-density-east" min="0" max="100" value="50">
+                                </div>
+                                <div class="lane-slider-item mt-2">
+                                    <div class="slider-label">
+                                        <span>Hostel Zone (West)</span>
+                                        <span id="val-density-west">Medium (50%)</span>
+                                    </div>
+                                    <input type="range" class="slider" id="slider-density-west" min="0" max="100" value="50">
+                                </div>
+                                <span class="help-text">Set individual spawn rates. 100% represents peak rush hours.</span>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="slider-label">
+                                    <span>AI Camera Range (meters)</span>
+                                    <span id="val-sensor-range">120m</span>
+                                </div>
+                                <input type="range" class="slider" id="slider-sensor-range" min="50" max="200" value="120">
+                                <span class="help-text">Distance from the stop lines within which cars are counted by AI.</span>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="slider-label">
+                                    <span>Min/Max Green Light Phase</span>
+                                    <span id="val-green-limit">5s - 45s</span>
+                                </div>
+                                <div class="range-inputs">
+                                    <input type="number" id="input-min-green" min="3" max="15" value="5">
+                                    <span>to</span>
+                                    <input type="number" id="input-max-green" min="20" max="60" value="45">
+                                    <span>sec</span>
+                                </div>
+                                <span class="help-text">Adaptive limits applied during AI scheduling.</span>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="slider-label">
+                                    <span>Pedestrian Crossing Duration</span>
+                                    <span id="val-ped-duration">12s</span>
+                                </div>
+                                <input type="range" class="slider" id="slider-ped-duration" min="5" max="25" value="12">
+                            </div>
+
+                            <div class="control-group">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="chk-smart-routing" checked>
+                                    <span class="checkmark"></span>
+                                    Enable Adaptive Pedestrian Safety
+                                </label>
+                                <span class="help-text">Pedestrian light activates only when a pedestrian button is pushed, minimizing car delay.</span>
+                            </div>
+                            
+                            <div class="stats-panel mt-6">
+                                <h4>Current Light Durations</h4>
+                                <div class="current-timers">
+                                    <div class="timer-row">
+                                        <span>North-South Green:</span>
+                                        <strong id="timer-ns">12.0s</strong>
+                                    </div>
+                                    <div class="timer-row">
+                                        <span>East-West Green:</span>
+                                        <strong id="timer-ew">8.5s</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ANALYTICS & LOGS -->
+                <div class="tab-pane" id="tab-analytics">
+                    <div class="analytics-layout">
+                        <!-- Evaluation Reports Export Panel -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;" class="glass">
+                            <div>
+                                <h3 style="font-size: 1.1rem; color: #fff;">System Evaluation Reports</h3>
+                                <p class="subtitle" style="margin-top: 0.1rem;">Download simulated historical records and analytics profiles.</p>
+                            </div>
+                            <div style="display: flex; gap: 0.75rem;">
+                                <button class="btn btn-outline" id="btn-export-csv">
+                                    <i data-lucide="download"></i> Export CSV Log
+                                </button>
+                                <button class="btn btn-primary" id="btn-export-pdf">
+                                    <i data-lucide="file-down"></i> Download PDF Summary
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Chart Widgets -->
+                        <div class="charts-grid">
+                            <div class="chart-card glass">
+                                <div class="card-title-bar">
+                                    <h3>Avg Delay & Wait Time (s)</h3>
+                                    <span class="subtitle">AI Adaptive vs Traditional Fixed Cycle</span>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="chartWaitTime"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="chart-card glass">
+                                <div class="card-title-bar">
+                                    <h3>Vehicles Cleared (Throughput)</h3>
+                                    <span class="subtitle">Cumulative vehicle exits per lane</span>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="chartThroughput"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Peak Hours Analysis Table & Form -->
+                        <div class="analytics-extra-grid mt-6">
+                            <div class="glass flex-2">
+                                <div class="card-title-bar">
+                                    <h3>Campus Traffic Peak-Hours Prediction Matrix</h3>
+                                    <span class="badge bg-cyan-alpha text-cyan">AI PREDICTIVE MODEL</span>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Time Interval</th>
+                                                <th>Expected Density</th>
+                                                <th>Primary Source</th>
+                                                <th>AI Prediction Rate</th>
+                                                <th>Automated Action Plan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="peak-high">
+                                                <td>08:15 AM - 09:30 AM</td>
+                                                <td><span class="badge bg-danger">HIGH (85%)</span></td>
+                                                <td>Main Gate Incoming</td>
+                                                <td>96.4% Accuracy</td>
+                                                <td>Prioritize Northbound Entry Lanes, Extend green phases</td>
+                                            </tr>
+                                            <tr>
+                                                <td>11:00 AM - 12:00 PM</td>
+                                                <td><span class="badge bg-success">LOW (25%)</span></td>
+                                                <td>Internal Campus Crossways</td>
+                                                <td>89.1% Accuracy</td>
+                                                <td>Short cycles, sensor-triggered switching</td>
+                                            </tr>
+                                            <tr class="peak-medium">
+                                                <td>12:30 PM - 01:30 PM</td>
+                                                <td><span class="badge bg-warning">MEDIUM (55%)</span></td>
+                                                <td>Library / Food Court Ring</td>
+                                                <td>92.5% Accuracy</td>
+                                                <td>Pedestrian-priority mode for shift change</td>
+                                            </tr>
+                                            <tr class="peak-high">
+                                                <td>04:00 PM - 05:30 PM</td>
+                                                <td><span class="badge bg-danger">HIGH (90%)</span></td>
+                                                <td>Main Gate Outgoing</td>
+                                                <td>98.2% Accuracy</td>
+                                                <td>Extend Southbound Exit Green phase, clear outbound loops</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="glass flex-1">
+                                <div class="card-title-bar">
+                                    <h3>Mathematical Algorithm Formulation</h3>
+                                </div>
+                                <div class="math-content">
+                                    <p>The AI controller optimizes signal phases using a dynamic cost function based on vehicle queue delays:</p>
+                                    <div class="math-block">
+                                        \[ J = \sum_{i \in Lanes} \left( w_1 \cdot Q_i + w_2 \cdot W_i \right) \]
+                                    </div>
+                                    <p>Where:</p>
+                                    <ul>
+                                        <li><strong>\(Q_i\)</strong>: Queue length in lane \(i\) (measured by cameras).</li>
+                                        <li><strong>\(W_i\)</strong>: Maximum wait time of vehicle at front of lane \(i\).</li>
+                                        <li><strong>\(w_1, w_2\)</strong>: Weights defined in AI parameter profiles.</li>
+                                    </ul>
+                                    <p>At each cycle selection, the algorithm activates the phase \(P^*\) which maximizes the rate of cost reduction:</p>
+                                    <div class="math-block">
+                                        \[ P^* = \arg\max_{P} \Delta J(P) \]
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. PROJECT REPORT DRAFT -->
+                <div class="tab-pane" id="tab-report">
+                    <div class="report-layout">
+                        <!-- Navigation on side for Chapters -->
+                        <aside class="report-toc glass">
+                            <h4>Report Outline</h4>
+                            <ul>
+                                <li><a href="#rep-abstract" class="toc-link active">Abstract</a></li>
+                                <li><a href="#rep-ch1" class="toc-link">1. Introduction</a></li>
+                                <li><a href="#rep-ch2" class="toc-link">2. Literature Review</a></li>
+                                <li><a href="#rep-ch3" class="toc-link">3. System Architecture</a></li>
+                                <li><a href="#rep-ch4" class="toc-link">4. Methodology & Algorithms</a></li>
+                                <li><a href="#rep-ch5" class="toc-link">5. Results & Discussion</a></li>
+                                <li><a href="#rep-ch6" class="toc-link">6. Source Code Overview</a></li>
+                                <li><a href="#rep-references" class="toc-link">References</a></li>
+                            </ul>
+                            <div class="toc-footer">
+                                <button class="btn btn-primary btn-block" id="btn-print-report">
+                                    <i data-lucide="printer"></i> Print / Save PDF
+                                </button>
+                            </div>
+                        </aside>
+
+                        <!-- Chapter Contents -->
+                        <div class="report-viewer glass" id="report-text-container">
+                            <!-- Dynamically loaded report content -->
+                            <div class="report-loading">Loading report data...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+    
+    <!-- Report Loader & Core Scripts -->
+    <script src="report_data.js"></script>
+    <script src="simulation.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
