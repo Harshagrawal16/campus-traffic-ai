@@ -443,6 +443,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 9. Bind Fullscreen Actions
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            const iconEnter = btnFullscreen.querySelector('.fullscreen-icon-enter');
+            const iconExit = btnFullscreen.querySelector('.fullscreen-icon-exit');
+            
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    if (iconEnter && iconExit) {
+                        iconEnter.style.display = 'none';
+                        iconExit.style.display = 'block';
+                    }
+                }).catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    if (iconEnter && iconExit) {
+                        iconEnter.style.display = 'block';
+                        iconExit.style.display = 'none';
+                    }
+                }).catch(err => {
+                    console.error(`Error attempting to exit fullscreen: ${err.message}`);
+                });
+            }
+        });
+        
+        // Handle changes initiated by Escape key or native UI changes
+        document.addEventListener('fullscreenchange', () => {
+            const iconEnter = btnFullscreen.querySelector('.fullscreen-icon-enter');
+            const iconExit = btnFullscreen.querySelector('.fullscreen-icon-exit');
+            if (iconEnter && iconExit) {
+                if (document.fullscreenElement) {
+                    iconEnter.style.display = 'none';
+                    iconExit.style.display = 'block';
+                } else {
+                    iconEnter.style.display = 'block';
+                    iconExit.style.display = 'none';
+                }
+            }
+        });
+    }
+    
     // Hook globally so simulation can trigger log rendering
     window.updateDashboardLogs = renderLogs;
     window.updateDashboardStats = updateStatsGauges;
