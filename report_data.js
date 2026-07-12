@@ -12,7 +12,7 @@ const PROJECT_REPORT_DATA = {
                 <div style="margin-bottom: 3rem;">
                     <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Submitted By:</p>
                     <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH GOYAL</p>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: [Your Enrollment Number]</p>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: O23BCA110212</p>
                 </div>
 
                 <div style="margin-top: 4rem;">
@@ -21,34 +21,6 @@ const PROJECT_REPORT_DATA = {
                     <p style="font-size: 0.95rem; color: var(--text-muted);">CU Online</p>
                     <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2023 - 2026</p>
                 </div>
-            </div>
-
-            <!-- Declaration Page -->
-            <div style="page-break-after: always; padding: 2rem 0;">
-                <h2 style="text-align: center; font-size: 1.8rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; margin-bottom: 2.5rem;">DECLARATION</h2>
-                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">I, <strong>HARSH GOYAL</strong>, candidate for the award of the degree of <strong>Bachelor of Computer Applications (BCA)</strong>, do hereby declare that the project report entitled <strong>"AI-Based Smart Traffic Control System for Campus Premises"</strong> is an original work completed under the supervision of our departmental faculties, and that it has not previously formed the basis for the award of any degree, diploma, associate-ship, or other title of recognition in any university or institute.</p>
-                
-                <br><br><br>
-                <div style="float: right; text-align: right; margin-top: 3rem;">
-                    <p style="font-weight: bold;">HARSH GOYAL</p>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">Place: [City Name]</p>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">Date: [Insert Date Here]</p>
-                </div>
-                <div style="clear: both;"></div>
-            </div>
-
-            <!-- Acknowledgment Page -->
-            <div style="page-break-after: always; padding: 2rem 0;">
-                <h2 style="text-align: center; font-size: 1.8rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; margin-bottom: 2.5rem;">ACKNOWLEDGMENT</h2>
-                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">First and foremost, I express my deep sense of gratitude and sincere thanks to the Head of the Department and the Project Coordinators for providing valuable guidance, continuous supervision, encouragement, and constructive criticism throughout the progress of this project.</p>
-                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">I would also like to express my gratitude to all the teaching and non-teaching staff members of the Department of Computer Applications for their timely support, cooperation, and guidance during my studies. I am highly indebted to my parents and friends for their moral support, understanding, and prayers, which enabled me to complete this project successfully.</p>
-                
-                <br><br><br>
-                <div style="float: right; text-align: right; margin-top: 2rem;">
-                    <p style="font-weight: bold; margin-bottom: 0.2rem;">HARSH GOYAL</p>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">BCA Session 2023 - 2026</p>
-                </div>
-                <div style="clear: both;"></div>
             </div>
 
             <!-- Abstract Core -->

@@ -514,8 +514,8 @@ function updateHeaderTitles(tab) {
         titleEl.textContent = "Analytics & Intelligence Logs";
         subtitleEl.textContent = "Comparative performance metrics and historical predictive models.";
     } else if (tab === 'report') {
-        titleEl.textContent = "BCA Project Documentation";
-        subtitleEl.textContent = "Comprehensive engineering thesis report ready for academic submission.";
+        titleEl.textContent = "BCA PROJECT DOCUMENTATION";
+        subtitleEl.textContent = "COMPREHENSIVE REPORT IS READY FOR ACADEMIC SUBMISSION";
     }
 }
 
