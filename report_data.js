@@ -13,12 +13,10 @@ const PROJECT_REPORT_DATA = {
                     <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Submitted By:</p>
                     <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH GOYAL</p>
                     <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: O23BCA110212</p>
+                    <p style="font-size: 1rem; color: var(--text-muted); margin-top: 0.5rem;">Chandigarh University Online</p>
                 </div>
 
                 <div style="margin-top: 4rem;">
-                    <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">DEPARTMENT OF COMPUTER APPLICATIONS</p>
-                    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 0.25rem;">Chandigarh University Online</p>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">CU Online</p>
                     <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2023 - 2026</p>
                 </div>
             </div>
