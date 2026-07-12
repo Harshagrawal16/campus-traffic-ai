@@ -1452,3 +1452,18 @@ hr {
     background-color: rgba(255, 255, 255, 0.07);
     box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
 }
+
+/* Eye Comfort Mode Overlay Filter */
+body.eye-comfort::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(245, 158, 11, 0.09); /* Warm Amber Filter */
+    pointer-events: none; /* Let all clicks pass through */
+    z-index: 9999999; /* Draw over everything */
+    mix-blend-mode: multiply; /* Blends nicely */
+    transition: background 0.3s ease;
+}

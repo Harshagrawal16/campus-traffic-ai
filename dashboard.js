@@ -411,6 +411,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 8. Bind Eye Comfort Switcher Actions
+    const btnEyeComfort = document.getElementById('btn-eye-comfort');
+    if (btnEyeComfort) {
+        btnEyeComfort.addEventListener('click', () => {
+            document.body.classList.toggle('eye-comfort');
+            const isComfort = document.body.classList.contains('eye-comfort');
+            
+            // Save preference to localStorage
+            localStorage.setItem('eye_comfort_preference', isComfort ? 'active' : 'inactive');
+            
+            // Update icons
+            const iconOff = btnEyeComfort.querySelector('.eye-icon-off');
+            const iconOn = btnEyeComfort.querySelector('.eye-icon-on');
+            if (iconOff && iconOn) {
+                iconOff.style.display = isComfort ? 'none' : 'block';
+                iconOn.style.display = isComfort ? 'block' : 'none';
+            }
+        });
+        
+        // Restore saved eye comfort preference
+        const savedComfort = localStorage.getItem('eye_comfort_preference');
+        if (savedComfort === 'active') {
+            document.body.classList.add('eye-comfort');
+            const iconOff = btnEyeComfort.querySelector('.eye-icon-off');
+            const iconOn = btnEyeComfort.querySelector('.eye-icon-on');
+            if (iconOff && iconOn) {
+                iconOff.style.display = 'none';
+                iconOn.style.display = 'block';
+            }
+        }
+    }
+    
     // Hook globally so simulation can trigger log rendering
     window.updateDashboardLogs = renderLogs;
     window.updateDashboardStats = updateStatsGauges;
