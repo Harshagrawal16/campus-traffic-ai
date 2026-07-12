@@ -869,24 +869,26 @@ class IntersectionSim {
         let ctx = this.ctx;
         if (!ctx) return;
 
-        // Clear Canvas
-        ctx.fillStyle = '#070a13';
+        // Clear Canvas (Theme Adaptive)
+        const isLight = document.body && document.body.classList.contains('light-theme');
+        
+        ctx.fillStyle = isLight ? '#cbd5e1' : '#070a13';
         ctx.fillRect(0, 0, this.width, this.height);
 
-        // Draw Green Grass Sidewalk Lawns
-        ctx.fillStyle = '#0f172a';
+        // Draw lawns/sidewalks
+        ctx.fillStyle = isLight ? '#f1f5f9' : '#0f172a';
         ctx.fillRect(0, 0, this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2); // Top Left
         ctx.fillRect(this.centerX + this.roadWidth/2, 0, this.width, this.centerY - this.roadWidth/2); // Top Right
         ctx.fillRect(0, this.centerY + this.roadWidth/2, this.centerX - this.roadWidth/2, this.height); // Bottom Left
         ctx.fillRect(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2, this.width, this.height); // Bottom Right
 
         // Draw Roads (Asphalt Gray)
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = isLight ? '#94a3b8' : '#1e293b';
         ctx.fillRect(this.centerX - this.roadWidth/2, 0, this.roadWidth, this.height); // NS Road
         ctx.fillRect(0, this.centerY - this.roadWidth/2, this.width, this.roadWidth); // EW Road
 
         // Draw Lane dividers & borders (yellow and dashed white markings)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.2)' : 'rgba(255, 255, 255, 0.15)';
         ctx.lineWidth = 2;
 
         // Outer Road boundaries
@@ -915,7 +917,7 @@ class IntersectionSim {
         ctx.stroke();
 
         // Dashed Lane Centerlines
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.4)';
         ctx.setLineDash([10, 10]);
         ctx.beginPath();
         ctx.moveTo(this.centerX, 0); ctx.lineTo(this.centerX, this.centerY - this.roadWidth/2);

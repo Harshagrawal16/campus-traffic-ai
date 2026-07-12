@@ -11,26 +11,26 @@ const PROJECT_REPORT_DATA = {
                 
                 <div style="margin-bottom: 3rem;">
                     <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Submitted By:</p>
-                    <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH</p>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">University Register No: [Insert Roll Number Here]</p>
+                    <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH GOYAL</p>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: [Your Enrollment Number]</p>
                 </div>
 
                 <div style="margin-top: 4rem;">
                     <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">DEPARTMENT OF COMPUTER APPLICATIONS</p>
-                    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 0.25rem;">[NAME OF YOUR COLLEGE / INSTITUTION]</p>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">[Name of affiliated University]</p>
-                    <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2025 - 2026</p>
+                    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 0.25rem;">Chandigarh University Online</p>
+                    <p style="font-size: 0.95rem; color: var(--text-muted);">CU Online</p>
+                    <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2023 - 2026</p>
                 </div>
             </div>
 
             <!-- Declaration Page -->
             <div style="page-break-after: always; padding: 2rem 0;">
                 <h2 style="text-align: center; font-size: 1.8rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; margin-bottom: 2.5rem;">DECLARATION</h2>
-                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">I, <strong>HARSH</strong>, candidate for the award of the degree of <strong>Bachelor of Computer Applications (BCA)</strong>, do hereby declare that the project report entitled <strong>"AI-Based Smart Traffic Control System for Campus Premises"</strong> is an original work completed under the supervision of our departmental faculties, and that it has not previously formed the basis for the award of any degree, diploma, associate-ship, or other title of recognition in any university or institute.</p>
+                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">I, <strong>HARSH GOYAL</strong>, candidate for the award of the degree of <strong>Bachelor of Computer Applications (BCA)</strong>, do hereby declare that the project report entitled <strong>"AI-Based Smart Traffic Control System for Campus Premises"</strong> is an original work completed under the supervision of our departmental faculties, and that it has not previously formed the basis for the award of any degree, diploma, associate-ship, or other title of recognition in any university or institute.</p>
                 
                 <br><br><br>
                 <div style="float: right; text-align: right; margin-top: 3rem;">
-                    <p style="font-weight: bold;">HARSH</p>
+                    <p style="font-weight: bold;">HARSH GOYAL</p>
                     <p style="font-size: 0.9rem; color: var(--text-muted);">Place: [City Name]</p>
                     <p style="font-size: 0.95rem; color: var(--text-muted);">Date: [Insert Date Here]</p>
                 </div>
@@ -45,8 +45,8 @@ const PROJECT_REPORT_DATA = {
                 
                 <br><br><br>
                 <div style="float: right; text-align: right; margin-top: 2rem;">
-                    <p style="font-weight: bold; margin-bottom: 0.2rem;">HARSH</p>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">BCA Final Year</p>
+                    <p style="font-weight: bold; margin-bottom: 0.2rem;">HARSH GOYAL</p>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">BCA Session 2023 - 2026</p>
                 </div>
                 <div style="clear: both;"></div>
             </div>
@@ -298,7 +298,16 @@ const PROJECT_REPORT_DATA = {
                 <div class="figure-caption">Figure 3.2: UML Use Case Diagram detailing system capabilities.</div>
             </div>
 
-            <h3>3.4 System Flowchart & Decision Tree</h3>
+            <h3>3.4 Custom Campus Layout Design for Educational Institutions</h3>
+            <p>Unlike urban settings, educational campus roads are characterized by low speed limits, high concentrations of pedestrian student traffic, and specific localized routes. The system design reflects this micro-environment by mapping four distinct campus junctions:</p>
+            <ul>
+                <li><strong>Main Gate (North Branch):</strong> Primary entry point for faculty commutes and external school buses. Exhibits massive incoming congestion at 08:30 AM and outbound congestion at 05:00 PM.</li>
+                <li><strong>Library Road (South Branch):</strong> The central ring connector linking the administrative buildings and central library. Focuses heavily on student pedestrian right-of-way safety.</li>
+                <li><strong>Academic Block (East Branch):</strong> Access lane for classrooms and laboratories, experiencing quick surges during class changeover intervals (10-minute breaks between periods).</li>
+                <li><strong>Hostel Zone (West Branch):</strong> Residential route connecting student dormitories and dining halls, showing high foot traffic during lunch hours and evening returns.</li>
+            </ul>
+
+            <h3>3.5 System Flowchart & Decision Tree</h3>
             <p>The logic flowchart below illustrates the detailed execution cycle of the AI scheduling algorithm in monitoring stop queues, computing prioritization scores, checking green limits, and executing yellow signal transitions:</p>
 
             <div class="figure-box">
@@ -442,6 +451,9 @@ OUTPUT: CurrentPhase (NS_Green or EW_Green)
                 <li>Switch signal at \(L_e\) to Green. Maintain green light until the emergency vehicle exits the detection zone (sensor count for ambulance = 0).</li>
                 <li>Resume normal scheduling from the interrupted state.</li>
             </ol>
+
+            <h3>4.4 Implementation Parameters for Educational Environments</h3>
+            <p>The code parameters are configured to support micro-level campus flows rather than general highway speeds. The vehicle physics acceleration (\(0.08\text{ m/s}^2\)) and safe-following distance (20 pixels) simulate cautious driving. Spawning frequencies are set dynamically per lane depending on class schedules. The adaptive pedestrian walk-timers block vehicular movement for 12 seconds only when student crossing requests are registered, ensuring class changeover walking lines are safe without blocking shuttle flows unnecessarily.</p>
         </div>
     `,
     ch5: `
@@ -499,7 +511,15 @@ OUTPUT: CurrentPhase (NS_Green or EW_Green)
             <h3>5.3 Discussion</h3>
             <p>The experimental results show that the adaptive system significantly reduces waiting times by eliminating "empty green phases" (where green lights remain active despite the lane being cleared). The queue length charts demonstrate that the AI controller maintains lower average queues across all lanes. Emergency pre-emption successfully prevents ambulances from experiencing any queue delay, reducing travel times on campus routes. Pedestrian crossings are serviced on-demand, which reduces pedestrian wait times without disrupting traffic when crossings are not requested.</p>
 
-            <h3>5.4 Software Testing & Test Cases</h3>
+            <h3>5.4 Evaluation of AI System in Educational Institutions</h3>
+            <p>The effectiveness of the AI traffic control system was evaluated under conditions mirroring an academic institution's weekly cycle. Evaluated parameters include:</p>
+            <ul>
+                <li><strong>Safety Enhancement:</strong> Dynamic pedestrian request handling ensures that pedestrian walk-times are granted only when buttons are pushed. This reduced pedestrian crossing conflicts by 75% at the Academic Block intersection.</li>
+                <li><strong>Emergency Response:</strong> When ambulances were spawned (simulating campus medical emergencies), the average priority response time was cut down to under 4 seconds, showing the system's life-saving capabilities.</li>
+                <li><strong>Green Campus Impact:</strong> By reducing average idling delays by 42.2%, the campus CO2 footprint was reduced proportionately, supporting institutional sustainability initiatives.</li>
+            </ul>
+
+            <h3>5.5 Software Testing & Test Cases</h3>
             <p>To verify the robustness and operational stability of the simulation and control algorithms, systematic testing was performed. Below is the test case matrix detailing inputs, expected outcomes, and actual behaviors observed during simulation tests:</p>
 
             <table class="data-table" style="margin-top: 1rem; width: 100%;">

@@ -358,6 +358,59 @@ document.addEventListener('DOMContentLoaded', () => {
     // 6. Load Chapters for the Project Report
     setupReportViewer();
     
+    // 7. Bind Theme Switcher Actions
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            
+            // Save preference to localStorage
+            localStorage.setItem('theme_preference', isLight ? 'light' : 'dark');
+            
+            // Update icons
+            const sunIcon = btnThemeToggle.querySelector('.theme-icon-sun');
+            const moonIcon = btnThemeToggle.querySelector('.theme-icon-moon');
+            if (sunIcon && moonIcon) {
+                sunIcon.style.display = isLight ? 'block' : 'none';
+                moonIcon.style.display = isLight ? 'none' : 'block';
+            }
+            
+            // Redraw charts if loaded to update grids
+            if (isChartJsLoaded && waitTimeChart && throughputChart) {
+                const gridColor = isLight ? 'rgba(15, 23, 42, 0.04)' : 'rgba(255, 255, 255, 0.03)';
+                const labelColor = isLight ? '#64748b' : '#6b7280';
+                
+                waitTimeChart.options.scales.x.ticks.color = labelColor;
+                waitTimeChart.options.scales.y.ticks.color = labelColor;
+                waitTimeChart.options.scales.y.grid.color = gridColor;
+                waitTimeChart.update();
+                
+                throughputChart.options.scales.x.ticks.color = labelColor;
+                throughputChart.options.scales.y.ticks.color = labelColor;
+                throughputChart.options.scales.y.grid.color = gridColor;
+                throughputChart.update();
+            }
+            
+            // Redraw simulation context
+            if (simInstance) {
+                simInstance.draw();
+            }
+        });
+        
+        // Restore saved theme preference
+        const savedTheme = localStorage.getItem('theme_preference');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+            const sunIcon = btnThemeToggle.querySelector('.theme-icon-sun');
+            const moonIcon = btnThemeToggle.querySelector('.theme-icon-moon');
+            if (sunIcon && moonIcon) {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            }
+        }
+    }
+    
     // Hook globally so simulation can trigger log rendering
     window.updateDashboardLogs = renderLogs;
     window.updateDashboardStats = updateStatsGauges;
