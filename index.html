@@ -16,7 +16,9 @@
 </head>
 <body>
     <!-- Security Login Portal -->
-    <div class="login-wrapper" id="login-portal">
+    <div class="login-wrapper" id="login-portal" style="position: relative; overflow: hidden;">
+        <!-- Futuristic Background Canvas -->
+        <canvas id="login-bg-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;"></canvas>
         <!-- Login Card -->
         <div class="login-card glass" id="login-card">
             <div class="login-header">
@@ -38,9 +40,19 @@
                 
                 <div class="form-group" style="margin-top: 1rem;">
                     <label for="password">Security Access Key</label>
-                    <div class="input-wrapper">
+                    <div class="input-wrapper" style="position: relative; display: flex; align-items: center;">
                         <i data-lucide="lock"></i>
-                        <input type="password" id="password" placeholder="Password" required>
+                        <input type="password" id="password" placeholder="Password" required style="padding-right: 2.5rem; width: 100%;">
+                        <button type="button" id="btn-toggle-pwd" style="position: absolute; right: 0.8rem; background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; outline: none; padding: 0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-show">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-hide" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -196,6 +208,38 @@
                         </svg>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fullscreen-icon-exit" style="display: none; color: var(--primary);">
                             <path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"></path>
+                        </svg>
+                    </button>
+                    <!-- Weather Toggle Button -->
+                    <button class="weather-btn glass" id="btn-weather" title="Toggle Weather (Rain)" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02); transition: var(--transition); outline: none; padding: 0; display: flex;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="weather-icon-clear" style="color: var(--text-primary);">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="weather-icon-rain" style="display: none; color: #3b82f6;">
+                            <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"></path>
+                            <line x1="8" y1="16" x2="8" y2="22"></line>
+                            <line x1="12" y1="18" x2="12" y2="22"></line>
+                            <line x1="16" y1="16" x2="16" y2="22"></line>
+                        </svg>
+                    </button>
+                    <!-- Audio Toggle Button -->
+                    <button class="audio-btn glass" id="btn-audio" title="Toggle Sound" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02); transition: var(--transition); outline: none; padding: 0; display: flex;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="audio-icon-on" style="color: var(--text-primary);">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="audio-icon-off" style="display: none; color: var(--text-muted);">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <line x1="23" y1="9" x2="17" y2="15"></line>
+                            <line x1="17" y1="9" x2="23" y2="15"></line>
                         </svg>
                     </button>
                     <div class="q-stat-card">
@@ -381,6 +425,9 @@
                                     <button class="btn btn-cyan" id="btn-spawn-pedestrian">
                                         <i data-lucide="accessibility"></i> Simulate Pedestrian Crossing
                                     </button>
+                                    <button class="btn btn-outline" id="btn-spawn-bike" style="border-color: var(--success); color: var(--success); background: var(--success-alpha); display: inline-flex; align-items: center; gap: 0.5rem;">
+                                        <i data-lucide="bike"></i> Spawn Student Bike
+                                    </button>
                                 </div>
                                 <div class="speed-selector">
                                     <span>Sim Speed:</span>
@@ -513,7 +560,10 @@
                             </div>
                             <div style="display: flex; gap: 0.75rem;">
                                 <button class="btn btn-outline" id="btn-export-csv">
-                                    <i data-lucide="download"></i> Export CSV Log
+                                    <i data-lucide="download"></i> Export CSV
+                                </button>
+                                <button class="btn btn-outline" id="btn-export-json" style="border-color: var(--purple); color: var(--purple); background: var(--purple-alpha); display: inline-flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="file-json"></i> Export JSON
                                 </button>
                                 <button class="btn btn-primary" id="btn-export-pdf">
                                     <i data-lucide="file-down"></i> Download PDF Summary

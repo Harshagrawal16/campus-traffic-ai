@@ -10,6 +10,7 @@ let isChartJsLoaded = false;
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     // 0. Setup Security Login Portal & Registration
+    initLoginBgAnimation();
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const loginPortal = document.getElementById('login-portal');
@@ -42,6 +43,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (loginError) loginError.style.display = 'none';
             if (registerMsg) registerMsg.style.display = 'none';
             if (typeof lucide !== 'undefined') lucide.createImages();
+        });
+    }
+
+    // Password visibility switcher (Show/Hide key)
+    const btnTogglePwd = document.getElementById('btn-toggle-pwd');
+    const pwdInput = document.getElementById('password');
+    if (btnTogglePwd && pwdInput) {
+        btnTogglePwd.addEventListener('click', () => {
+            const isPassword = pwdInput.type === 'password';
+            pwdInput.type = isPassword ? 'text' : 'password';
+            
+            const eyeShow = btnTogglePwd.querySelector('.eye-show');
+            const eyeHide = btnTogglePwd.querySelector('.eye-hide');
+            if (eyeShow && eyeHide) {
+                eyeShow.style.display = isPassword ? 'none' : 'block';
+                eyeHide.style.display = isPassword ? 'block' : 'none';
+            }
         });
     }
 
@@ -228,8 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Toggle buttons disabled states
         const controlButtons = [
             'btn-sim-pause', 'btn-sim-reset', 'btn-clear-logs',
-            'btn-spawn-ambulance', 'btn-spawn-pedestrian',
-            'btn-manual-ns', 'btn-manual-ew', 'btn-mode-ai', 'btn-mode-fixed', 'btn-mode-manual'
+            'btn-spawn-ambulance', 'btn-spawn-pedestrian', 'btn-spawn-bike',
+            'btn-manual-ns', 'btn-manual-ew', 'btn-mode-ai', 'btn-mode-fixed', 'btn-mode-manual',
+            'btn-export-csv', 'btn-export-json', 'btn-export-pdf'
         ];
         
         controlButtons.forEach(id => {
@@ -487,6 +506,89 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // 10. Bind Weather Actions
+    const btnWeather = document.getElementById('btn-weather');
+    if (btnWeather) {
+        btnWeather.addEventListener('click', () => {
+            document.body.classList.toggle('weather-rain');
+            const isRain = document.body.classList.contains('weather-rain');
+            
+            // Save preference to localStorage
+            localStorage.setItem('weather_preference', isRain ? 'rain' : 'clear');
+            
+            // Update icons
+            const iconClear = btnWeather.querySelector('.weather-icon-clear');
+            const iconRain = btnWeather.querySelector('.weather-icon-rain');
+            if (iconClear && iconRain) {
+                iconClear.style.display = isRain ? 'none' : 'block';
+                iconRain.style.display = isRain ? 'block' : 'none';
+            }
+            
+            // Log action to AI logs
+            if (simInstance) {
+                if (isRain) {
+                    simInstance.weather = 'rain';
+                    simInstance.logAIAction("🌧️ Precipitation system activated. Road speed coefficients set to 0.70x for safe-braking calibration.", "warning");
+                } else {
+                    simInstance.weather = 'clear';
+                    simInstance.logAIAction("☀️ Weather cleared. Standard road dry friction coefficients restored.", "success");
+                }
+                renderLogs();
+            }
+        });
+        
+        // Restore saved weather preference
+        const savedWeather = localStorage.getItem('weather_preference');
+        if (savedWeather === 'rain') {
+            document.body.classList.add('weather-rain');
+            const iconClear = btnWeather.querySelector('.weather-icon-clear');
+            const iconRain = btnWeather.querySelector('.weather-icon-rain');
+            if (iconClear && iconRain) {
+                iconClear.style.display = 'none';
+                iconRain.style.display = 'block';
+            }
+        }
+    }
+    
+    // 11. Bind Audio Actions
+    const btnAudio = document.getElementById('btn-audio');
+    if (btnAudio) {
+        btnAudio.addEventListener('click', () => {
+            document.body.classList.toggle('audio-muted');
+            const isMuted = document.body.classList.contains('audio-muted');
+            
+            // Save preference to localStorage
+            localStorage.setItem('audio_preference', isMuted ? 'muted' : 'unmuted');
+            
+            // Update icons
+            const iconOn = btnAudio.querySelector('.audio-icon-on');
+            const iconOff = btnAudio.querySelector('.audio-icon-off');
+            if (iconOn && iconOff) {
+                iconOn.style.display = isMuted ? 'none' : 'block';
+                iconOff.style.display = isMuted ? 'block' : 'none';
+            }
+            
+            // Stop sound immediately if muted
+            if (isMuted && window.sirenSynth) {
+                window.sirenSynth.stop();
+            } else if (!isMuted && window.sirenSynth && simInstance && simInstance.emergencyActive) {
+                window.sirenSynth.start();
+            }
+        });
+        
+        // Restore saved audio preference
+        const savedAudio = localStorage.getItem('audio_preference');
+        if (savedAudio === 'muted') {
+            document.body.classList.add('audio-muted');
+            const iconOn = btnAudio.querySelector('.audio-icon-on');
+            const iconOff = btnAudio.querySelector('.audio-icon-off');
+            if (iconOn && iconOff) {
+                iconOn.style.display = 'none';
+                iconOff.style.display = 'block';
+            }
+        }
+    }
+    
     // Hook globally so simulation can trigger log rendering
     window.updateDashboardLogs = renderLogs;
     window.updateDashboardStats = updateStatsGauges;
@@ -720,6 +822,17 @@ function setupControls() {
         });
     }
 
+    // Spawn student bike
+    const btnBike = document.getElementById('btn-spawn-bike');
+    if (btnBike) {
+        btnBike.addEventListener('click', () => {
+            if (simInstance) {
+                simInstance.spawnVehicle(null, 'bike');
+                showToast("Student Bike spawned successfully!", "success");
+            }
+        });
+    }
+
     // Speed buttons
     const speedBtns = document.querySelectorAll('.speed-btn');
     speedBtns.forEach(btn => {
@@ -760,8 +873,10 @@ function setupControls() {
 
     // Export buttons
     const btnExportCsv = document.getElementById('btn-export-csv');
+    const btnExportJson = document.getElementById('btn-export-json');
     const btnExportPdf = document.getElementById('btn-export-pdf');
     if (btnExportCsv) btnExportCsv.addEventListener('click', exportCSVReport);
+    if (btnExportJson) btnExportJson.addEventListener('click', exportJSONReport);
     if (btnExportPdf) btnExportPdf.addEventListener('click', exportPDFSummary);
 
     const sliderSensorRange = document.getElementById('slider-sensor-range');
@@ -1304,4 +1419,105 @@ function exportPDFSummary() {
         printWindow.document.write(printContent);
         printWindow.document.close();
     }
+}
+
+// Evaluation Log JSON Exporter
+function exportJSONReport() {
+    if (!simInstance) return;
+    
+    let stats = simInstance.stats;
+    let avgWait = stats.totalVehicles > 0 ? (stats.totalWaitTime / stats.totalVehicles) : 0;
+    
+    let reportData = {
+        title: "AI Smart Traffic Control System - Simulation Evaluation Profile",
+        timestamp: new Date().toISOString(),
+        controlMode: simInstance.controlMode,
+        metrics: {
+            averageWaitTimeSeconds: parseFloat(avgWait.toFixed(2)),
+            totalVehiclesProcessed: stats.totalVehicles,
+            throughputNS: stats.throughputNS,
+            throughputEW: stats.throughputEW,
+            emissionsSavedKgCO2: parseFloat(stats.emissionsSaved.toFixed(3))
+        },
+        logs: stats.aiEventLogs
+    };
+    
+    // Download Blob
+    const blob = new Blob([JSON.stringify(reportData, null, 4)], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `smart_traffic_evaluation_${Date.now()}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Futuristic Constellation Network Background Animation on Login Page
+function initLoginBgAnimation() {
+    const canvas = document.getElementById('login-bg-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const particles = [];
+    const particleCount = 45;
+    
+    for (let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            radius: 1.2 + Math.random() * 1.8
+        });
+    }
+    
+    function animate() {
+        const loginPortal = document.getElementById('login-portal');
+        if (loginPortal && loginPortal.style.display === 'none') {
+            return; // stop execution loop once logged in
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw constellation links
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < particleCount; i++) {
+            for (let j = i + 1; j < particleCount; j++) {
+                const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                if (dist < 110) {
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Draw and update node coordinates
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.3)';
+        particles.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        });
+        
+        requestAnimationFrame(animate);
+    }
+    animate();
 }

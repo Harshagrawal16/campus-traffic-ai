@@ -1,5 +1,76 @@
 /* AI Smart Traffic Control Simulation Engine */
 
+// Web Audio API Synthesized Siren for Emergency Vehicles
+class SirenSynthesizer {
+    constructor() {
+        this.ctx = null;
+        this.oscillator = null;
+        this.gainNode = null;
+        this.isPlaying = false;
+        this.intervalId = null;
+    }
+
+    init() {
+        if (this.ctx) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.gainNode = this.ctx.createGain();
+            this.gainNode.gain.setValueAtTime(0.04, this.ctx.currentTime); // soft volume
+            this.gainNode.connect(this.ctx.destination);
+        } catch (e) {
+            console.error("Web Audio API not supported:", e);
+        }
+    }
+
+    start() {
+        const isMuted = document.body && document.body.classList.contains('audio-muted');
+        if (isMuted) return;
+
+        this.init();
+        if (!this.ctx || this.isPlaying) return;
+
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+
+        try {
+            this.oscillator = this.ctx.createOscillator();
+            this.oscillator.type = 'sawtooth';
+            this.oscillator.frequency.setValueAtTime(600, this.ctx.currentTime);
+            this.oscillator.connect(this.gainNode);
+            this.oscillator.start();
+            this.isPlaying = true;
+
+            let toggle = false;
+            this.intervalId = setInterval(() => {
+                if (!this.oscillator || !this.ctx) return;
+                let time = this.ctx.currentTime;
+                let targetFreq = toggle ? 750 : 550;
+                this.oscillator.frequency.exponentialRampToValueAtTime(targetFreq, time + 0.35);
+                toggle = !toggle;
+            }, 400);
+        } catch (e) {
+            console.error("Error starting siren osc:", e);
+        }
+    }
+
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+        if (this.oscillator) {
+            try {
+                this.oscillator.stop();
+            } catch (e) {}
+            this.oscillator.disconnect();
+            this.oscillator = null;
+        }
+        this.isPlaying = false;
+    }
+}
+window.sirenSynth = new SirenSynthesizer();
+
 // Utility for cross-browser rounded rectangle compatibility
 function safeRoundRect(ctx, x, y, width, height, radius) {
     if (typeof ctx.roundRect === 'function') {
@@ -61,9 +132,11 @@ class Vehicle {
     }
 
     update(simSpeed, leadVehicle, lightState, stopLineX, stopLineY, sensorRange) {
-        let actualSpeedLimit = this.targetSpeed * simSpeed;
-        let actualAccel = this.acceleration * simSpeed;
-        let actualDecel = this.deceleration * simSpeed;
+        const isRain = document.body && document.body.classList.contains('weather-rain');
+        let weatherFactor = isRain ? 0.70 : 1.0;
+        let actualSpeedLimit = this.targetSpeed * simSpeed * weatherFactor;
+        let actualAccel = this.acceleration * simSpeed * weatherFactor;
+        let actualDecel = this.deceleration * simSpeed * weatherFactor;
 
         this.sirenTimer += 0.2 * simSpeed;
         
@@ -149,6 +222,41 @@ class Vehicle {
         if (this.lane === 'EAST') ctx.rotate(Math.PI);
         if (this.lane === 'NORTH') ctx.rotate(Math.PI / 2);
         if (this.lane === 'SOUTH') ctx.rotate(-Math.PI / 2);
+
+        // Custom render for student bicycles
+        if (this.type === 'bike') {
+            // Draw bike wheels
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-this.length/2, -1.5, 4, 3); // Rear wheel
+            ctx.fillRect(this.length/2 - 4, -1.5, 4, 3); // Front wheel
+            
+            // Draw bike frame (simple chassis)
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(-this.length/2 + 2, 0);
+            ctx.lineTo(this.length/2 - 2, 0);
+            ctx.stroke();
+
+            // Draw Handlebars
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(this.length/3 - 1, -this.width/2, 2, this.width);
+
+            // Draw Rider (circle in middle)
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw Rider Helmet
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(1, 0, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            return;
+        }
 
         // Shadow
         ctx.shadowBlur = 8;
@@ -296,6 +404,8 @@ class IntersectionSim {
         this.simSpeed = 1.0;
         this.isPaused = false;
         this.controlMode = 'AI'; // 'AI' or 'FIXED'
+        this.weather = 'clear';
+        this.rainDrops = [];
         
         // AI Algorithm Constants
         this.sensorRange = 120; // pixels from stop line
@@ -386,6 +496,7 @@ class IntersectionSim {
         this.pedestrianSignalState = 'DONT_WALK';
         this.emergencyActive = false;
         this.emergencyLane = null;
+        if (window.sirenSynth) window.sirenSynth.stop();
         
         this.lights.NS.state = 'GREEN';
         this.lights.NS.timer = 15.0;
@@ -420,15 +531,32 @@ class IntersectionSim {
             this.emergencyActive = true;
             this.emergencyLane = lane;
             this.logAIAction(`🚨 Emergency detected on ${this.lanes[lane].dirName}! Priority cycle requested.`, 'danger');
-        } else if (Math.random() < 0.15) {
+            if (window.sirenSynth) window.sirenSynth.start();
+        } else if (type === 'bike') {
+            // Student bicycle/motorcycle rider
+            const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
+            color = colors[Math.floor(Math.random() * colors.length)];
+            targetSpeed = 1.8 + Math.random() * 0.4;
+            sizeWidth = 8;
+            sizeLength = 18;
+        } else if (type === 'shuttle' || (forcedType === 'car' && Math.random() < 0.12)) {
             // Heavy Campus Shuttle
             type = 'shuttle';
             color = '#f59e0b'; // Amber shuttle
             targetSpeed = 1.2;
             sizeWidth = 19;
             sizeLength = 40;
+        } else if (forcedType === 'car' && Math.random() < 0.22) {
+            // Randomly spawn a student bike instead of a car (22% chance)
+            type = 'bike';
+            const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
+            color = colors[Math.floor(Math.random() * colors.length)];
+            targetSpeed = 1.8 + Math.random() * 0.4;
+            sizeWidth = 8;
+            sizeLength = 18;
         } else {
             // Random cool color palettes for student/staff cars
+            type = 'car';
             const colors = ['#00f2fe', '#10b981', '#8b5cf6', '#ec4899', '#f43f5e', '#3b82f6'];
             color = colors[Math.floor(Math.random() * colors.length)];
         }
@@ -605,6 +733,7 @@ class IntersectionSim {
                 this.emergencyActive = false;
                 this.emergencyLane = null;
                 this.logAIAction("Ambulance exited safely. Resuming regular scheduling.", "success");
+                if (window.sirenSynth) window.sirenSynth.stop();
                 // set short timer to clear remaining queues
                 this.lights.NS.timer = this.minGreen;
                 this.lights.EW.timer = this.minGreen;
@@ -1030,6 +1159,51 @@ class IntersectionSim {
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 8px "Inter"';
             ctx.fillText(this.pedestrianSignalState === 'WALK' ? "WALK" : "WAIT", this.centerX - this.roadWidth/2 - 58, this.centerY - this.roadWidth/2 - 27);
+        }
+
+        // Draw & Update Weather Effects (Rain)
+        const isRain = document.body && document.body.classList.contains('weather-rain');
+        if (isRain) {
+            this.weather = 'rain';
+            
+            // Spawn new raindrops if active
+            if (this.rainDrops.length < 150 && !this.isPaused) {
+                for (let i = 0; i < 3; i++) {
+                    this.rainDrops.push({
+                        x: Math.random() * this.width,
+                        y: Math.random() * -10,
+                        length: 8 + Math.random() * 8,
+                        speed: 6 + Math.random() * 3
+                    });
+                }
+            }
+
+            // Draw rain lines
+            ctx.save();
+            ctx.strokeStyle = 'rgba(14, 165, 233, 0.4)';
+            ctx.lineWidth = 1;
+            for (let i = this.rainDrops.length - 1; i >= 0; i--) {
+                let drop = this.rainDrops[i];
+                ctx.beginPath();
+                ctx.moveTo(drop.x, drop.y);
+                ctx.lineTo(drop.x - 1.5, drop.y + drop.length);
+                ctx.stroke();
+
+                // Update position
+                if (!this.isPaused) {
+                    drop.y += drop.speed * this.simSpeed;
+                    drop.x -= 1.5 * this.simSpeed;
+                    
+                    // Recycle or remove drop
+                    if (drop.y > this.height || drop.x < 0) {
+                        this.rainDrops.splice(i, 1);
+                    }
+                }
+            }
+            ctx.restore();
+        } else {
+            this.weather = 'clear';
+            this.rainDrops = [];
         }
     }
 
