@@ -247,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const controlButtons = [
             'btn-sim-pause', 'btn-sim-reset', 'btn-clear-logs',
             'btn-spawn-ambulance', 'btn-spawn-pedestrian', 'btn-spawn-bike',
+            'btn-spawn-auto', 'btn-spawn-cycle',
             'btn-manual-ns', 'btn-manual-ew', 'btn-mode-ai', 'btn-mode-fixed', 'btn-mode-manual',
             'btn-export-csv', 'btn-export-json', 'btn-export-pdf'
         ];
@@ -347,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Instantiate simulation (this should always run)
     try {
         simInstance = new IntersectionSim('dashboardCanvasPreview');
+        window.simInstance = simInstance; // Bind globally
         // Keep it paused on startup to save CPU cycles until authenticated
         simInstance.pause();
     } catch (e) {
@@ -394,6 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 sunIcon.style.display = isLight ? 'block' : 'none';
                 moonIcon.style.display = isLight ? 'none' : 'block';
             }
+            // Update labels
+            const statusTxt = document.getElementById('txt-theme-status');
+            if (statusTxt) statusTxt.textContent = isLight ? "Theme: LIGHT" : "Theme: DARK";
             
             // Redraw charts if loaded to update grids
             if (isChartJsLoaded && waitTimeChart && throughputChart) {
@@ -427,6 +432,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 sunIcon.style.display = 'block';
                 moonIcon.style.display = 'none';
             }
+            const statusTxt = document.getElementById('txt-theme-status');
+            if (statusTxt) statusTxt.textContent = "Theme: LIGHT";
         }
     }
     
@@ -440,13 +447,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save preference to localStorage
             localStorage.setItem('eye_comfort_preference', isComfort ? 'active' : 'inactive');
             
-            // Update icons
+            // Update icons & text
             const iconOff = btnEyeComfort.querySelector('.eye-icon-off');
             const iconOn = btnEyeComfort.querySelector('.eye-icon-on');
             if (iconOff && iconOn) {
                 iconOff.style.display = isComfort ? 'none' : 'block';
                 iconOn.style.display = isComfort ? 'block' : 'none';
             }
+            const statusTxt = document.getElementById('txt-eye-status');
+            if (statusTxt) statusTxt.textContent = isComfort ? "Eye Comfort: ON" : "Eye Comfort: OFF";
+            
+            // Color feedback
+            btnEyeComfort.style.color = isComfort ? 'var(--warning)' : 'var(--text-primary)';
+            btnEyeComfort.style.borderColor = isComfort ? 'var(--warning-glow)' : 'var(--border-color)';
         });
         
         // Restore saved eye comfort preference
@@ -459,6 +472,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconOff.style.display = 'none';
                 iconOn.style.display = 'block';
             }
+            const statusTxt = document.getElementById('txt-eye-status');
+            if (statusTxt) statusTxt.textContent = "Eye Comfort: ON";
+            btnEyeComfort.style.color = 'var(--warning)';
+            btnEyeComfort.style.borderColor = 'var(--warning-glow)';
         }
     }
     
@@ -468,6 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnFullscreen.addEventListener('click', () => {
             const iconEnter = btnFullscreen.querySelector('.fullscreen-icon-enter');
             const iconExit = btnFullscreen.querySelector('.fullscreen-icon-exit');
+            const statusTxt = document.getElementById('txt-fullscreen-status');
             
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().then(() => {
@@ -475,6 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         iconEnter.style.display = 'none';
                         iconExit.style.display = 'block';
                     }
+                    if (statusTxt) statusTxt.textContent = "Fullscreen: ON";
                 }).catch(err => {
                     console.error(`Error attempting to enable fullscreen: ${err.message}`);
                 });
@@ -484,6 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         iconEnter.style.display = 'block';
                         iconExit.style.display = 'none';
                     }
+                    if (statusTxt) statusTxt.textContent = "Fullscreen: OFF";
                 }).catch(err => {
                     console.error(`Error attempting to exit fullscreen: ${err.message}`);
                 });
@@ -494,13 +514,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('fullscreenchange', () => {
             const iconEnter = btnFullscreen.querySelector('.fullscreen-icon-enter');
             const iconExit = btnFullscreen.querySelector('.fullscreen-icon-exit');
+            const statusTxt = document.getElementById('txt-fullscreen-status');
             if (iconEnter && iconExit) {
                 if (document.fullscreenElement) {
                     iconEnter.style.display = 'none';
                     iconExit.style.display = 'block';
+                    if (statusTxt) statusTxt.textContent = "Fullscreen: ON";
                 } else {
                     iconEnter.style.display = 'block';
                     iconExit.style.display = 'none';
+                    if (statusTxt) statusTxt.textContent = "Fullscreen: OFF";
                 }
             }
         });
@@ -516,13 +539,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save preference to localStorage
             localStorage.setItem('weather_preference', isRain ? 'rain' : 'clear');
             
-            // Update icons
+            // Update icons & text
             const iconClear = btnWeather.querySelector('.weather-icon-clear');
             const iconRain = btnWeather.querySelector('.weather-icon-rain');
             if (iconClear && iconRain) {
                 iconClear.style.display = isRain ? 'none' : 'block';
                 iconRain.style.display = isRain ? 'block' : 'none';
             }
+            const statusTxt = document.getElementById('txt-weather-status');
+            if (statusTxt) statusTxt.textContent = isRain ? "Rain: ON" : "Rain: OFF";
+            btnWeather.style.color = isRain ? '#3b82f6' : 'var(--text-primary)';
+            btnWeather.style.borderColor = isRain ? 'rgba(59, 130, 246, 0.4)' : 'var(--border-color)';
             
             // Log action to AI logs
             if (simInstance) {
@@ -547,6 +574,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconClear.style.display = 'none';
                 iconRain.style.display = 'block';
             }
+            const statusTxt = document.getElementById('txt-weather-status');
+            if (statusTxt) statusTxt.textContent = "Rain: ON";
+            btnWeather.style.color = '#3b82f6';
+            btnWeather.style.borderColor = 'rgba(59, 130, 246, 0.4)';
         }
     }
     
@@ -560,13 +591,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save preference to localStorage
             localStorage.setItem('audio_preference', isMuted ? 'muted' : 'unmuted');
             
-            // Update icons
+            // Update icons & text
             const iconOn = btnAudio.querySelector('.audio-icon-on');
             const iconOff = btnAudio.querySelector('.audio-icon-off');
             if (iconOn && iconOff) {
                 iconOn.style.display = isMuted ? 'none' : 'block';
                 iconOff.style.display = isMuted ? 'block' : 'none';
             }
+            const statusTxt = document.getElementById('txt-audio-status');
+            if (statusTxt) statusTxt.textContent = isMuted ? "Sound: OFF" : "Sound: ON";
+            btnAudio.style.color = isMuted ? 'var(--text-muted)' : 'var(--text-primary)';
             
             // Stop sound immediately if muted
             if (isMuted && window.sirenSynth) {
@@ -586,6 +620,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconOn.style.display = 'none';
                 iconOff.style.display = 'block';
             }
+            const statusTxt = document.getElementById('txt-audio-status');
+            if (statusTxt) statusTxt.textContent = "Sound: OFF";
         }
     }
     
@@ -599,11 +635,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save preference to localStorage
             localStorage.setItem('heatmap_preference', isActive ? 'on' : 'off');
             
-            // Update icon color
+            // Update icon color & text
             const icon = btnHeatmap.querySelector('.heatmap-icon');
             if (icon) {
                 icon.style.color = isActive ? '#f97316' : 'var(--text-primary)';
             }
+            const statusTxt = document.getElementById('txt-heatmap-status');
+            if (statusTxt) statusTxt.textContent = isActive ? "Heatmap: ON" : "Heatmap: OFF";
+            btnHeatmap.style.color = isActive ? '#f97316' : 'var(--text-primary)';
+            btnHeatmap.style.borderColor = isActive ? 'rgba(249, 115, 22, 0.4)' : 'var(--border-color)';
             
             // Update simulation state
             if (simInstance) {
@@ -625,6 +665,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (icon) {
                 icon.style.color = '#f97316';
             }
+            const statusTxt = document.getElementById('txt-heatmap-status');
+            if (statusTxt) statusTxt.textContent = "Heatmap: ON";
+            btnHeatmap.style.color = '#f97316';
+            btnHeatmap.style.borderColor = 'rgba(249, 115, 22, 0.4)';
+            
             // Sync simulation state
             setTimeout(() => {
                 if (simInstance) simInstance.heatmapActive = true;
@@ -754,6 +799,10 @@ function setupTabs() {
             if (targetTab === 'analytics' && isChartJsLoaded) {
                 updateChartsData();
             }
+            // Re-render challans when entering portal
+            if (targetTab === 'challan') {
+                updateChallanPortal();
+            }
         });
     });
     
@@ -784,6 +833,9 @@ function updateHeaderTitles(tab) {
     } else if (tab === 'report') {
         titleEl.textContent = "BCA PROJECT DOCUMENTATION";
         subtitleEl.textContent = "COMPREHENSIVE REPORT IS READY FOR ACADEMIC SUBMISSION";
+    } else if (tab === 'challan') {
+        titleEl.textContent = "Automated E-Challan Portal";
+        subtitleEl.textContent = "AI-powered detection log of campus traffic speed and signal violations.";
     }
 }
 
@@ -945,6 +997,48 @@ function setupControls() {
             if (simInstance) {
                 simInstance.spawnVehicle(null, 'bike');
                 // Automatically resume simulation to show bike action
+                if (simInstance.isPaused) {
+                    simInstance.start();
+                    const btnPause = document.getElementById('btn-sim-pause');
+                    if (btnPause) {
+                        btnPause.querySelector('span').textContent = "Pause";
+                        const icon = btnPause.querySelector('i');
+                        if (icon && typeof lucide !== 'undefined') icon.setAttribute('data-lucide', 'pause');
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createImages();
+                }
+            }
+        });
+    }
+
+    // Spawn auto-rickshaw
+    const btnAuto = document.getElementById('btn-spawn-auto');
+    if (btnAuto) {
+        btnAuto.addEventListener('click', () => {
+            if (simInstance) {
+                simInstance.spawnVehicle(null, 'auto');
+                // Automatically resume simulation to show action
+                if (simInstance.isPaused) {
+                    simInstance.start();
+                    const btnPause = document.getElementById('btn-sim-pause');
+                    if (btnPause) {
+                        btnPause.querySelector('span').textContent = "Pause";
+                        const icon = btnPause.querySelector('i');
+                        if (icon && typeof lucide !== 'undefined') icon.setAttribute('data-lucide', 'pause');
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createImages();
+                }
+            }
+        });
+    }
+
+    // Spawn manual bicycle
+    const btnCycle = document.getElementById('btn-spawn-cycle');
+    if (btnCycle) {
+        btnCycle.addEventListener('click', () => {
+            if (simInstance) {
+                simInstance.spawnVehicle(null, 'cycle');
+                // Automatically resume simulation to show action
                 if (simInstance.isPaused) {
                     simInstance.start();
                     const btnPause = document.getElementById('btn-sim-pause');
@@ -1464,13 +1558,23 @@ function exportCSVReport() {
     
     // Create CSV content
     let csv = "AI Smart Traffic Control System - Simulation Evaluation Log\n";
-    csv += `Timestamp,${new Date().toLocaleString()}\n`;
+    csv += `Exported At,${new Date().toLocaleString()}\n`;
     csv += `Control Mode,${simInstance.controlMode}\n`;
     csv += `Average Wait Time (s),${avgWait.toFixed(2)}\n`;
     csv += `Total Vehicles Processed,${stats.totalVehicles}\n`;
     csv += `Total North-South Throughput,${stats.throughputNS}\n`;
     csv += `Total East-West Throughput,${stats.throughputEW}\n`;
     csv += `Emissions Saved (kg CO2),${stats.emissionsSaved.toFixed(3)}\n\n`;
+    
+    // Detailed vehicles log
+    csv += "Processed Vehicles Records:\n";
+    csv += "Timestamp,Vehicle License Plate,Vehicle Type,Junction Direction,Speed (km/h),Waiting Time (s),Challan Issued?\n";
+    
+    let logRecords = stats.processedVehiclesLog || [];
+    logRecords.forEach(v => {
+        csv += `${v.timestamp},${v.id},${v.type},${v.direction},${v.speed},${v.waitTime},${v.challan}\n`;
+    });
+    csv += "\n";
     
     csv += "System Logs Activity History:\n";
     csv += "Time,Event Type,Description\n";
@@ -1598,14 +1702,15 @@ function exportJSONReport() {
         title: "AI Smart Traffic Control System - Simulation Evaluation Profile",
         timestamp: new Date().toISOString(),
         controlMode: simInstance.controlMode,
-        metrics: {
+        summaryMetrics: {
             averageWaitTimeSeconds: parseFloat(avgWait.toFixed(2)),
             totalVehiclesProcessed: stats.totalVehicles,
             throughputNS: stats.throughputNS,
             throughputEW: stats.throughputEW,
             emissionsSavedKgCO2: parseFloat(stats.emissionsSaved.toFixed(3))
         },
-        logs: stats.aiEventLogs
+        processedVehiclesRecords: stats.processedVehiclesLog || [],
+        systemLogsActivityHistory: stats.aiEventLogs
     };
     
     // Download Blob
@@ -1686,4 +1791,209 @@ function initLoginBgAnimation() {
         requestAnimationFrame(animate);
     }
     animate();
+}
+
+// E-Challan system database & actions
+window.eChallans = [];
+
+window.triggerChallan = function(vehicleId, vehicleType, violationType, amount) {
+    // Avoid duplicate triggers for the same vehicle in a short window
+    const recentDuplicate = window.eChallans.find(c => c.vehicleId === vehicleId && c.violationType === violationType && (Date.now() - c.timestampRaw < 10000));
+    if (recentDuplicate) return;
+
+    const challanId = `#CH-${Math.floor(1000 + Math.random() * 9000)}`;
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    const newChallan = {
+        id: challanId,
+        vehicleId: vehicleId,
+        vehicleType: vehicleType,
+        violationType: violationType,
+        amount: amount,
+        time: timeStr,
+        timestampRaw: Date.now(),
+        status: 'Pending'
+    };
+
+    window.eChallans.unshift(newChallan); // Add to top
+    
+    // Log in AI Action Log
+    if (simInstance) {
+        simInstance.logAIAction(`📸 Violation Alert: ${violationType} by vehicle ${vehicleId}. Fine: ₹${amount} issued.`, "error");
+        if (typeof renderLogs === 'function') renderLogs();
+    }
+
+    // Play citation sound if audio is unmuted and AudioContext is active
+    const isMuted = document.body.classList.contains('audio-muted');
+    if (!isMuted) {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            // double beep like speed camera
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime + 0.15);
+            
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } catch (e) {
+            console.warn("Could not play citation sound:", e);
+        }
+    }
+
+    // Sync UI elements
+    updateChallanPortal();
+};
+
+function updateChallanPortal() {
+    const tableBody = document.getElementById('challan-table-body');
+    if (!tableBody) return;
+
+    if (window.eChallans.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📋</div>
+                    <p>No traffic violations detected yet.</p>
+                    <p style="font-size: 0.8rem; margin-top: 0.25rem;">Speeding vehicles or red light jumps will automatically issue fine receipts.</p>
+                </td>
+            </tr>
+        `;
+        document.getElementById('c-total-fines').textContent = "₹0";
+        document.getElementById('c-total-count').textContent = "0 Violations";
+        document.getElementById('c-pending-fines').textContent = "₹0";
+        document.getElementById('c-pending-count').textContent = "0 Unpaid";
+        document.getElementById('c-paid-fines').textContent = "₹0";
+        document.getElementById('c-paid-count').textContent = "0 Payments";
+        document.getElementById('c-recovery-rate').textContent = "0%";
+        
+        const badge = document.getElementById('challan-notification-badge');
+        if (badge) {
+            badge.style.display = 'none';
+            badge.textContent = '0';
+        }
+        return;
+    }
+
+    // Compute metrics
+    let totalAmount = 0;
+    let pendingAmount = 0;
+    let paidAmount = 0;
+    let paidCount = 0;
+
+    window.eChallans.forEach(c => {
+        totalAmount += c.amount;
+        if (c.status === 'Paid') {
+            paidAmount += c.amount;
+            paidCount++;
+        } else {
+            pendingAmount += c.amount;
+        }
+    });
+
+    let recoveryRate = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+
+    // Update cards
+    document.getElementById('c-total-fines').textContent = `₹${totalAmount}`;
+    document.getElementById('c-total-count').textContent = `${window.eChallans.length} Violations`;
+    document.getElementById('c-pending-fines').textContent = `₹${pendingAmount}`;
+    document.getElementById('c-pending-count').textContent = `${window.eChallans.length - paidCount} Unpaid`;
+    document.getElementById('c-paid-fines').textContent = `₹${paidAmount}`;
+    document.getElementById('c-paid-count').textContent = `${paidCount} Payments`;
+    document.getElementById('c-recovery-rate').textContent = `${recoveryRate}%`;
+
+    // Update notification badge count (unpaid challans only)
+    const unpaidCount = window.eChallans.length - paidCount;
+    const badge = document.getElementById('challan-notification-badge');
+    if (badge) {
+        if (unpaidCount > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = unpaidCount;
+        } else {
+            badge.style.display = 'none';
+            badge.textContent = '0';
+        }
+    }
+
+    // Render table rows
+    tableBody.innerHTML = window.eChallans.map((c, index) => {
+        const badgeClass = c.status === 'Paid' ? 'bg-success' : 'bg-warning';
+        const actionBtn = c.status === 'Paid' 
+            ? `<span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">✔️ Paid</span>`
+            : `<button class="btn btn-sm btn-success pay-challan-btn" data-index="${index}" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 4px;">💸 Pay Fine</button>`;
+
+        const vehicleEmojiMap = {
+            'car': '🚗 Car',
+            'bike': '🏍️ Motorbike',
+            'cycle': '🚲 Bicycle',
+            'auto': '🛺 Auto-Rickshaw',
+            'shuttle': '🚐 Shuttle Bus',
+            'ambulance': '🚑 Ambulance'
+        };
+        const vehicleLabel = vehicleEmojiMap[c.vehicleType] || `🚗 ${c.vehicleType}`;
+
+        return `
+            <tr style="${c.status === 'Paid' ? 'opacity: 0.7;' : ''}">
+                <td style="font-family: var(--font-mono); font-weight: bold; color: var(--primary);">${c.id}</td>
+                <td style="font-family: var(--font-mono); font-size: 0.8rem;">${c.vehicleId}</td>
+                <td><span style="text-transform: capitalize;">${vehicleLabel}</span></td>
+                <td style="color: var(--danger); font-weight: 500;">🚨 ${c.violationType}</td>
+                <td style="font-weight: bold;">₹${c.amount}</td>
+                <td style="font-size: 0.8rem; color: var(--text-muted);">${c.time}</td>
+                <td><span class="badge ${badgeClass}">${c.status}</span></td>
+                <td style="text-align: right;">${actionBtn}</td>
+            </tr>
+        `;
+    }).join('');
+
+    // Attach click listeners to "Pay Fine" buttons
+    const payBtns = tableBody.querySelectorAll('.pay-challan-btn');
+    payBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(btn.getAttribute('data-index'));
+            payChallan(idx);
+        });
+    });
+}
+
+function payChallan(index) {
+    if (index < 0 || index >= window.eChallans.length) return;
+    
+    window.eChallans[index].status = 'Paid';
+
+    // Play register cash register sound if unmuted
+    const isMuted = document.body.classList.contains('audio-muted');
+    if (!isMuted) {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.25);
+        } catch (e) {
+            console.warn("Could not play pay sound:", e);
+        }
+    }
+
+    // Refresh display
+    updateChallanPortal();
 }

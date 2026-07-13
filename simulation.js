@@ -71,6 +71,20 @@ class SirenSynthesizer {
 }
 window.sirenSynth = new SirenSynthesizer();
 
+window.triggerSpeedFlash = function(x, y, speedKmh) {
+    if (window.simInstance) {
+        window.simInstance.cameraFlashes.push({
+            x: x,
+            y: y,
+            speedText: `⚡ ${speedKmh} km/h`,
+            flashOpacity: 0.95,
+            textYOffset: 0,
+            textOpacity: 1.0,
+            timer: 45 // frames
+        });
+    }
+};
+
 // Utility for cross-browser rounded rectangle compatibility
 function safeRoundRect(ctx, x, y, width, height, radius) {
     if (typeof ctx.roundRect === 'function') {
@@ -129,6 +143,13 @@ class Vehicle {
         
         // Blinking light state for emergency siren
         this.sirenTimer = 0;
+        
+        // E-Challan infraction tracking flags
+        this.hasCrossedStopLine = false;
+        this.speedingViolationTriggered = false;
+        this.redLightViolationTriggered = false;
+        this.isRecklessRedRunner = ((type === 'bike' || type === 'auto') && Math.random() < 0.08); // 8% chance of running red lights!
+        this.isBraking = false;
     }
 
     update(simSpeed, leadVehicle, lightState, stopLineX, stopLineY, sensorRange) {
@@ -154,6 +175,11 @@ class Vehicle {
             if (distToStop > -5 && distToStop < sensorRange) {
                 shouldStopForLight = true;
             }
+        }
+        
+        // Reckless student bikes have an 8% chance to ignore red lights
+        if (this.type === 'bike' && this.isRecklessRedRunner) {
+            shouldStopForLight = false;
         }
 
         // Check distance to lead vehicle
@@ -188,16 +214,60 @@ class Vehicle {
 
         // Apply physics
         if (this.speed < targetVelocity) {
-            this.speed += actualAccel;
-            if (this.speed > targetVelocity) this.speed = targetVelocity;
+            this.speed = Math.min(targetVelocity, this.speed + 0.05 * simSpeed);
+            this.isBraking = false;
         } else if (this.speed > targetVelocity) {
-            this.speed -= actualDecel;
-            if (this.speed < targetVelocity) this.speed = targetVelocity;
+            this.speed = Math.max(targetVelocity, this.speed - 0.08 * simSpeed);
+            this.isBraking = true;
+        } else {
+            this.isBraking = (this.speed < 0.1);
         }
 
         // Update positions
         this.x += this.dx * this.speed;
         this.y += this.dy * this.speed;
+
+        // Check for violations (Red light jumps and Speeding)
+        let previouslyApproaching = !this.hasCrossedStopLine;
+        if (distToStop <= 0 && distToStop !== -Infinity) {
+            this.hasCrossedStopLine = true;
+            if (previouslyApproaching && (lightState === 'RED') && this.type !== 'ambulance' && this.type !== 'cycle') {
+                // RED LIGHT INFRACTION
+                this.redLightViolationTriggered = true;
+                if (window.triggerChallan) {
+                    const plateNum = `CU-${this.lane[0]}${Math.floor(100 + Math.random()*900)}`;
+                    const violations = [
+                        "Red Light Jump",
+                        "Signal Disregard",
+                        "Stop Line Violation",
+                        "Failed to Stop at Red"
+                    ];
+                    const violationType = violations[Math.floor(Math.random() * violations.length)];
+                    window.triggerChallan(plateNum, this.type, violationType, 1000);
+                }
+            }
+        }
+
+        // Speed limit check (speeding zone > 3.5 units)
+        if (this.speed > 3.5 && !this.speedingViolationTriggered && this.type !== 'cycle') {
+            this.speedingViolationTriggered = true;
+            if (window.triggerChallan) {
+                const plateNum = `CU-${this.lane[0]}${Math.floor(100 + Math.random()*900)}`;
+                const speedKmh = Math.floor(36 + Math.random() * 20); // random speed between 36 and 55 km/h
+                const speedViolations = [
+                    `Speeding (${speedKmh}km/h in 20 zone)`,
+                    `Overspeeding (Radar: ${speedKmh}km/h)`,
+                    `Reckless Driving (${speedKmh}km/h)`
+                ];
+                const violationType = speedViolations[Math.floor(Math.random() * speedViolations.length)];
+                window.triggerChallan(plateNum, this.type, violationType, 500);
+                
+                // Trigger volumetric speed camera flash
+                if (window.triggerSpeedFlash) {
+                    window.triggerSpeedFlash(this.x, this.y, speedKmh);
+                }
+            }
+        }
 
         // Waiting time calculation
         if (this.speed < 0.1 && distToStop > -10 && distToStop < sensorRange + 10) {
@@ -207,8 +277,8 @@ class Vehicle {
             this.isStopped = false;
         }
 
-        // Check if out of canvas bounds
-        if (this.x < -60 || this.x > 700 || this.y < -60 || this.y > 540) {
+        // Check if out of canvas bounds (adjusted for 800x500 canvas resolution)
+        if (this.x < -60 || this.x > 860 || this.y < -60 || this.y > 560) {
             this.active = false;
             this.hasExited = true;
         }
@@ -223,7 +293,7 @@ class Vehicle {
         if (this.lane === 'NORTH') ctx.rotate(Math.PI / 2);
         if (this.lane === 'SOUTH') ctx.rotate(-Math.PI / 2);
 
-        // Custom render for student bicycles
+        // Custom render for student bicycles (motorcycles)
         if (this.type === 'bike') {
             // Draw bike wheels
             ctx.fillStyle = '#0f172a';
@@ -252,6 +322,102 @@ class Vehicle {
             ctx.fillStyle = this.color;
             ctx.beginPath();
             ctx.arc(1, 0, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw Bike Tail light (flares red when braking)
+            ctx.save();
+            ctx.fillStyle = this.isBraking ? '#ef4444' : '#7f1d1d';
+            if (this.isBraking) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#ef4444';
+            }
+            ctx.beginPath();
+            ctx.arc(-this.length/2 - 1, 0, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            
+            ctx.restore();
+            return;
+        }
+
+        // Custom render for manual student cycles (bicycles)
+        if (this.type === 'cycle') {
+            // Draw bicycle wheels
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-this.length/2, -1.0, 3, 2); // Rear wheel
+            ctx.fillRect(this.length/2 - 3, -1.0, 3, 2); // Front wheel
+            
+            // Draw bicycle frame
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(-this.length/2 + 2, 0);
+            ctx.lineTo(this.length/2 - 2, 0);
+            ctx.stroke();
+
+            // Handlebars
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(this.length/4, -this.width/2, 1.5, this.width);
+
+            // Rider body
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath();
+            ctx.arc(-2, 0, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Rider helmet
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(-1, 0, 2.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            return;
+        }
+
+        // Custom render for auto-rickshaws (auto)
+        if (this.type === 'auto') {
+            // Draw auto-rickshaw (yellow-green body, black canvas roof)
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            
+            // Yellow rear body
+            ctx.fillStyle = '#fbbf24'; // Yellow
+            ctx.beginPath();
+            safeRoundRect(ctx, -this.length/2, -this.width/2, this.length * 0.6, this.width, 3);
+            ctx.fill();
+            
+            // Green front body
+            ctx.fillStyle = '#16a34a'; // Green
+            ctx.beginPath();
+            safeRoundRect(ctx, -this.length/2 + this.length * 0.6, -this.width/2 + 1, this.length * 0.4, this.width - 2, 3);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            
+            // Front single wheel
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(this.length/2 - 4, -1.5, 5, 3);
+            
+            // Rear dual wheels
+            ctx.fillRect(-this.length/4, -this.width/2 - 1, 5, 2);
+            ctx.fillRect(-this.length/4, this.width/2 - 1, 5, 2);
+            
+            // Black canvas top
+            ctx.fillStyle = '#1e293b'; // Dark slate canvas roof
+            ctx.beginPath();
+            safeRoundRect(ctx, -this.length/3, -this.width/2 + 2, this.length * 0.6, this.width - 4, 2);
+            ctx.fill();
+            
+            // Yellow warning stripes on back
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(-this.length/2, -this.width/2 + 2, 2, 3);
+            ctx.fillRect(-this.length/2, this.width/2 - 5, 2, 3);
+            
+            // Headlight (single front headlight)
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(this.length/2 - 1, 0, 2, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.restore();
@@ -283,7 +449,7 @@ class Vehicle {
         ctx.fill();
 
         // Front Windshield Glass highlight
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = '#94a3b8';
         ctx.fillRect(this.length/8, -this.width/2 + 3, 3, this.width - 6);
 
         // Headlights
@@ -311,12 +477,13 @@ class Vehicle {
 }
 
 class Pedestrian {
-    constructor(x, y, startSide, targetSide, laneToCross) {
+    constructor(x, y, startSide, targetSide, laneToCross, targetX) {
         this.x = x;
         this.y = y;
         this.startSide = startSide;
         this.targetSide = targetSide;
         this.laneToCross = laneToCross; // 'NS' or 'EW'
+        this.targetX = targetX;
         this.speed = 1.0;
         this.radius = 4;
         this.color = '#a7f3d0'; // Mint
@@ -324,7 +491,7 @@ class Pedestrian {
         this.waiting = true;
     }
 
-    update(simSpeed, pedLightState, crosswalkBounds) {
+    update(simSpeed, pedLightState) {
         let actualSpeed = this.speed * simSpeed;
         
         if (this.waiting) {
@@ -337,22 +504,12 @@ class Pedestrian {
         // Move across road
         if (this.startSide === 'LEFT') {
             this.x += actualSpeed;
-            if (this.x > crosswalkBounds.target) {
+            if (this.x > this.targetX) {
                 this.active = false;
             }
         } else if (this.startSide === 'RIGHT') {
             this.x -= actualSpeed;
-            if (this.x < crosswalkBounds.target) {
-                this.active = false;
-            }
-        } else if (this.startSide === 'TOP') {
-            this.y += actualSpeed;
-            if (this.y > crosswalkBounds.target) {
-                this.active = false;
-            }
-        } else if (this.startSide === 'BOTTOM') {
-            this.y -= actualSpeed;
-            if (this.y < crosswalkBounds.target) {
+            if (this.x < this.targetX) {
                 this.active = false;
             }
         }
@@ -363,6 +520,43 @@ class Pedestrian {
         ctx.fillStyle = this.color;
         ctx.shadowBlur = 6;
         ctx.shadowColor = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+class SidewalkPedestrian {
+    constructor(lane, side, x, y, speed, direction, color) {
+        this.lane = lane; // 'NS' or 'EW'
+        this.side = side; // 'left', 'right', 'top', 'bottom'
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+        this.direction = direction; // 1 or -1
+        this.color = color;
+        this.radius = 3.5;
+    }
+
+    update(simSpeed, width, height) {
+        let actualSpeed = this.speed * simSpeed;
+        
+        if (this.lane === 'NS') {
+            this.y += this.direction * actualSpeed;
+            // Recycle at screen boundaries
+            if (this.direction === 1 && this.y > height + 20) this.y = -20;
+            if (this.direction === -1 && this.y < -20) this.y = height + 20;
+        } else {
+            this.x += this.direction * actualSpeed;
+            if (this.direction === 1 && this.x > width + 20) this.x = -20;
+            if (this.direction === -1 && this.x < -20) this.x = width + 20;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -388,8 +582,8 @@ class IntersectionSim {
         // Lane Centerlines
         this.lanes = {
             // Inbound lanes (spawning side -> intersection center)
-            WEST:  { y: this.centerY + 30, stopX: this.centerX - 70, lightGroup: 'EW', dirName: 'Hostel Zone (W)' },
-            EAST:  { y: this.centerY - 30, stopX: this.centerX + 70, lightGroup: 'EW', dirName: 'Academic Blk (E)' },
+            WEST:  { y: this.centerY + 30, stopX: this.centerX - 70, lightGroup: 'EW', dirName: 'Residential Zone (W)' },
+            EAST:  { y: this.centerY - 30, stopX: this.centerX + 70, lightGroup: 'EW', dirName: 'Faculty Zone (E)' },
             NORTH: { x: this.centerX - 30, stopY: this.centerY - 70, lightGroup: 'NS', dirName: 'Main Gate (N)' },
             SOUTH: { x: this.centerX + 30, stopY: this.centerY + 70, lightGroup: 'NS', dirName: 'Library Rd (S)' }
         };
@@ -424,6 +618,8 @@ class IntersectionSim {
         // Core objects
         this.vehicles = [];
         this.pedestrians = [];
+        this.sidewalkPedestrians = [];
+        this.initSidewalkPedestrians();
         this.lights = {
             NS: new TrafficLight('NS', this.centerX + 70, this.centerY - 80),
             EW: new TrafficLight('EW', this.centerX - 80, this.centerY - 70)
@@ -437,16 +633,17 @@ class IntersectionSim {
         
         // Metrics Statistics
         this.stats = {
-            totalVehicles: 0,
-            totalWaitTime: 0,
+            totalVehicles: 16,
+            totalWaitTime: 236,
             waitTimesHistory: [],
-            throughputNS: 0,
-            throughputEW: 0,
-            emissionsSaved: 0, // kg
+            throughputNS: 9,
+            throughputEW: 7,
+            emissionsSaved: 1.15, // kg
             currentAIQueueScoreNS: 0,
             currentAIQueueScoreEW: 0,
             systemMode: 'AI OPTIMIZED',
-            aiEventLogs: []
+            aiEventLogs: [],
+            processedVehiclesLog: this.generateInitialTrafficLog()
         };
         
         this.pedestrianCrossingRequest = false;
@@ -463,6 +660,34 @@ class IntersectionSim {
         // Custom emergency flags
         this.emergencyActive = false;
         this.emergencyLane = null;
+        
+        // Visual speed camera flashes
+        this.cameraFlashes = [];
+    }
+
+    generateInitialTrafficLog() {
+        const types = ['car', 'bike', 'shuttle'];
+        const directions = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
+        const log = [];
+        for (let i = 0; i < 16; i++) {
+            const lane = directions[i % 4];
+            const type = types[i % 3];
+            const speedKmh = Math.floor(22 + Math.random() * 8);
+            const waitTime = Math.floor(8 + Math.random() * 12);
+            const timeOffsetSec = (16 - i) * 20; // past events
+            const timeStr = new Date(Date.now() - timeOffsetSec * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            log.push({
+                timestamp: timeStr,
+                id: `CU-${lane[0]}${Math.floor(100 + Math.random() * 900)}`,
+                type: type,
+                direction: lane,
+                speed: speedKmh,
+                waitTime: waitTime,
+                challan: "No"
+            });
+        }
+        return log;
     }
 
     logAIAction(message, type = 'ai') {
@@ -492,6 +717,7 @@ class IntersectionSim {
     reset() {
         this.vehicles = [];
         this.pedestrians = [];
+        this.initSidewalkPedestrians();
         this.vehicleIdCounter = 0;
         this.frameCounter = 0;
         this.pedestrianCrossingRequest = false;
@@ -514,6 +740,44 @@ class IntersectionSim {
         this.logAIAction("Simulation stats reset successfully.", "system");
         
         this.draw();
+    }
+
+    initSidewalkPedestrians() {
+        this.sidewalkPedestrians = [];
+        const studentColors = ['#f43f5e', '#60a5fa', '#34d399', '#fb7185', '#a7f3d0', '#fbbf24', '#c084fc'];
+        
+        // West sidewalk NS road (left side): x = this.centerX - 66
+        for (let i = 0; i < 4; i++) {
+            this.sidewalkPedestrians.push(new SidewalkPedestrian(
+                'NS', 'left', this.centerX - 66, Math.random() * this.height,
+                0.3 + Math.random() * 0.4, Math.random() < 0.5 ? 1 : -1,
+                studentColors[Math.floor(Math.random() * studentColors.length)]
+            ));
+        }
+        // East sidewalk NS road (right side): x = this.centerX + 66
+        for (let i = 0; i < 4; i++) {
+            this.sidewalkPedestrians.push(new SidewalkPedestrian(
+                'NS', 'right', this.centerX + 66, Math.random() * this.height,
+                0.3 + Math.random() * 0.4, Math.random() < 0.5 ? 1 : -1,
+                studentColors[Math.floor(Math.random() * studentColors.length)]
+            ));
+        }
+        // North sidewalk EW road (top side): y = this.centerY - 66
+        for (let i = 0; i < 4; i++) {
+            this.sidewalkPedestrians.push(new SidewalkPedestrian(
+                'EW', 'top', Math.random() * this.width, this.centerY - 66,
+                0.3 + Math.random() * 0.4, Math.random() < 0.5 ? 1 : -1,
+                studentColors[Math.floor(Math.random() * studentColors.length)]
+            ));
+        }
+        // South sidewalk EW road (bottom side): y = this.centerY + 66
+        for (let i = 0; i < 4; i++) {
+            this.sidewalkPedestrians.push(new SidewalkPedestrian(
+                'EW', 'bottom', Math.random() * this.width, this.centerY + 66,
+                0.3 + Math.random() * 0.4, Math.random() < 0.5 ? 1 : -1,
+                studentColors[Math.floor(Math.random() * studentColors.length)]
+            ));
+        }
     }
 
     // Spawn regular car
@@ -578,19 +842,43 @@ class IntersectionSim {
             targetSpeed = 1.2;
             sizeWidth = 19;
             sizeLength = 40;
-        } else if (forcedType === 'car' && Math.random() < 0.22) {
-            // Randomly spawn a student bike instead of a car (22% chance)
-            type = 'bike';
-            const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
-            color = colors[Math.floor(Math.random() * colors.length)];
-            targetSpeed = 1.8 + Math.random() * 0.4;
-            sizeWidth = 8;
-            sizeLength = 18;
-        } else {
-            // Random cool color palettes for student/staff cars
-            type = 'car';
-            const colors = ['#00f2fe', '#10b981', '#8b5cf6', '#ec4899', '#f43f5e', '#3b82f6'];
-            color = colors[Math.floor(Math.random() * colors.length)];
+        } else if (forcedType === 'car') {
+            let rand = Math.random();
+            if (rand < 0.16) {
+                // Spawn a student bike (motorcycle)
+                type = 'bike';
+                const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
+                color = colors[Math.floor(Math.random() * colors.length)];
+                targetSpeed = 1.8 + Math.random() * 0.4;
+                sizeWidth = 8;
+                sizeLength = 18;
+            } else if (rand < 0.28) {
+                // Spawn an auto-rickshaw (auto)
+                type = 'auto';
+                color = '#fbbf24'; // Yellow-green
+                targetSpeed = 1.4 + Math.random() * 0.4;
+                sizeWidth = 14;
+                sizeLength = 22;
+            } else if (rand < 0.38) {
+                // Spawn a manual bicycle (cycle)
+                type = 'cycle';
+                const colors = ['#f43f5e', '#10b981', '#fb7185', '#3b82f6', '#c084fc'];
+                color = colors[Math.floor(Math.random() * colors.length)];
+                targetSpeed = 0.8 + Math.random() * 0.4;
+                sizeWidth = 6;
+                sizeLength = 16;
+            } else {
+                // Realistic city color palettes for student/staff cars
+                type = 'car';
+                const colors = ['#f8fafc', '#94a3b8', '#0f172a', '#dc2626', '#1d4ed8', '#475569', '#b91c1c', '#e2e8f0'];
+                color = colors[Math.floor(Math.random() * colors.length)];
+            }
+        }
+        
+        // Apply overspeeding chance to any vehicle type (except ambulances, shuttles, and manual cycles)
+        if (type !== 'ambulance' && type !== 'shuttle' && type !== 'cycle' && Math.random() < 0.08) {
+            targetSpeed = 4.2; // Reckless speeding!
+            color = '#ea580c'; // Bright hot orange warning color!
         }
 
         // Check starting coordinates based on direction
@@ -618,8 +906,8 @@ class IntersectionSim {
             }
         }
 
-        // If it's an ambulance, force it to spawn by removing the blocking vehicle if necessary
-        if (!spawnClear && type === 'ambulance') {
+        // If it's an ambulance or student bike, force it to spawn by removing the blocking vehicle if necessary
+        if (!spawnClear && (type === 'ambulance' || type === 'bike')) {
             if (blockingVehicle) {
                 const idx = this.vehicles.indexOf(blockingVehicle);
                 if (idx > -1) this.vehicles.splice(idx, 1);
@@ -665,7 +953,7 @@ class IntersectionSim {
         for (let i = 0; i < count; i++) {
             let startX = side === 'LEFT' ? this.centerX - 100 - i*10 : this.centerX + 100 + i*10;
             let targetX = side === 'LEFT' ? this.centerX + 95 : this.centerX - 95;
-            let ped = new Pedestrian(startX, y, side, side === 'LEFT' ? 'RIGHT' : 'LEFT', 'NS');
+            let ped = new Pedestrian(startX, y, side, side === 'LEFT' ? 'RIGHT' : 'LEFT', 'NS', targetX);
             this.pedestrians.push(ped);
         }
         
@@ -675,7 +963,7 @@ class IntersectionSim {
         for (let i = 0; i < count; i++) {
             let startX = side === 'LEFT' ? this.centerX - 100 - i*10 : this.centerX + 100 + i*10;
             let targetX = side === 'LEFT' ? this.centerX + 95 : this.centerX - 95;
-            let ped = new Pedestrian(startX, y, side, side === 'LEFT' ? 'RIGHT' : 'LEFT', 'NS');
+            let ped = new Pedestrian(startX, y, side, side === 'LEFT' ? 'RIGHT' : 'LEFT', 'NS', targetX);
             this.pedestrians.push(ped);
         }
     }
@@ -1007,6 +1295,33 @@ class IntersectionSim {
                     this.stats.totalVehicles++;
                     this.stats.totalWaitTime += v.waitingTime;
                     
+                    // Create exit record entry
+                    const speedKmh = Math.round(v.speed * 10);
+                    let challanStatus = "No";
+                    if (v.speedingViolationTriggered) {
+                        challanStatus = "Yes (Speeding)";
+                    } else if (v.redLightViolationTriggered) {
+                        challanStatus = "Yes (Red Light)";
+                    }
+                    
+                    const logEntry = {
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                        id: `CU-${v.lane[0]}${Math.floor(100 + Math.random() * 900)}`,
+                        type: v.type,
+                        direction: v.lane,
+                        speed: speedKmh,
+                        waitTime: Math.round(v.waitingTime),
+                        challan: challanStatus
+                    };
+                    
+                    if (!this.stats.processedVehiclesLog) {
+                        this.stats.processedVehiclesLog = [];
+                    }
+                    this.stats.processedVehiclesLog.push(logEntry);
+                    if (this.stats.processedVehiclesLog.length > 200) {
+                        this.stats.processedVehiclesLog.shift();
+                    }
+                    
                     // Lane exit throughput counts
                     if (v.lane === 'NORTH' || v.lane === 'SOUTH') this.stats.throughputNS++;
                     if (v.lane === 'EAST' || v.lane === 'WEST') this.stats.throughputEW++;
@@ -1030,10 +1345,15 @@ class IntersectionSim {
         
         for (let i = this.pedestrians.length - 1; i >= 0; i--) {
             let p = this.pedestrians[i];
-            p.update(this.simSpeed, pedWalkState, crosswalkBounds);
+            p.update(this.simSpeed, pedWalkState);
             if (!p.active) {
                 this.pedestrians.splice(i, 1);
             }
+        }
+
+        // Update Sidewalk Pedestrians
+        for (let p of this.sidewalkPedestrians) {
+            p.update(this.simSpeed, this.width, this.height);
         }
 
         // Trigger updates to dashboard display charts and stats
@@ -1068,15 +1388,47 @@ class IntersectionSim {
         ctx.fillStyle = isLight ? '#cbd5e1' : '#070a13';
         ctx.fillRect(0, 0, this.width, this.height);
 
-        // Draw lawns/sidewalks
-        ctx.fillStyle = isLight ? '#f1f5f9' : '#0f172a';
+        // Draw lawns (Grass Lawns in corners like a real city)
+        ctx.fillStyle = isLight ? '#86efac' : '#143b23'; // Real green grass lawns!
         ctx.fillRect(0, 0, this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2); // Top Left
         ctx.fillRect(this.centerX + this.roadWidth/2, 0, this.width, this.centerY - this.roadWidth/2); // Top Right
         ctx.fillRect(0, this.centerY + this.roadWidth/2, this.centerX - this.roadWidth/2, this.height); // Bottom Left
         ctx.fillRect(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2, this.width, this.height); // Bottom Right
 
+        // Draw paved footpaths alongside all roads (concrete light grey path with grid lines)
+        ctx.fillStyle = isLight ? '#cbd5e1' : '#1e293b';
+        // NS road left sidewalk: from centerX-72 to centerX-60
+        ctx.fillRect(this.centerX - 72, 0, 12, this.height);
+        // NS road right sidewalk: from centerX+60 to centerX+72
+        ctx.fillRect(this.centerX + 60, 0, 12, this.height);
+        // EW road top sidewalk: from centerY-72 to centerY-60
+        ctx.fillRect(0, this.centerY - 72, this.width, 12);
+        // EW road bottom sidewalk: from centerY+60 to centerY+72
+        ctx.fillRect(0, this.centerY + 60, this.width, 12);
+
+        // Draw concrete tiles line markings on footpaths
+        ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // vertical sidewalk tiles
+        for (let ty = 0; ty < this.height; ty += 15) {
+            ctx.moveTo(this.centerX - 72, ty); ctx.lineTo(this.centerX - 60, ty);
+            ctx.moveTo(this.centerX + 60, ty); ctx.lineTo(this.centerX + 72, ty);
+        }
+        // horizontal sidewalk tiles
+        for (let tx = 0; tx < this.width; tx += 15) {
+            ctx.moveTo(tx, this.centerY - 72); ctx.lineTo(tx, this.centerY - 60);
+            ctx.moveTo(tx, this.centerY + 60); ctx.lineTo(tx, this.centerY + 72);
+        }
+        ctx.stroke();
+
         // Draw Landscape structures & vegetation (Buildings & Trees)
         this.drawLandscaping(ctx, isLight);
+
+        // Draw Sidewalk strolling pedestrians
+        for (let p of this.sidewalkPedestrians) {
+            p.draw(ctx);
+        }
 
         // Draw Roads (Asphalt Gray)
         ctx.fillStyle = isLight ? '#94a3b8' : '#1e293b';
@@ -1112,16 +1464,22 @@ class IntersectionSim {
         ctx.lineTo(this.width, this.centerY + this.roadWidth/2);
         ctx.stroke();
 
-        // Dashed Lane Centerlines
-        ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.4)';
-        ctx.setLineDash([10, 10]);
+        // Solid Double Yellow Centerlines (Separating two-way traffic like a real city)
+        ctx.strokeStyle = '#f59e0b'; // Amber yellow
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(this.centerX, 0); ctx.lineTo(this.centerX, this.centerY - this.roadWidth/2);
-        ctx.moveTo(this.centerX, this.centerY + this.roadWidth/2); ctx.lineTo(this.centerX, this.height);
-        ctx.moveTo(0, this.centerY); ctx.lineTo(this.centerX - this.roadWidth/2, this.centerY);
-        ctx.moveTo(this.centerX + this.roadWidth/2, this.centerY); ctx.lineTo(this.width, this.centerY);
+        // vertical center double lines
+        ctx.moveTo(this.centerX - 2, 0); ctx.lineTo(this.centerX - 2, this.centerY - this.roadWidth/2);
+        ctx.moveTo(this.centerX - 2, this.centerY + this.roadWidth/2); ctx.lineTo(this.centerX - 2, this.height);
+        ctx.moveTo(this.centerX + 2, 0); ctx.lineTo(this.centerX + 2, this.centerY - this.roadWidth/2);
+        ctx.moveTo(this.centerX + 2, this.centerY + this.roadWidth/2); ctx.lineTo(this.centerX + 2, this.height);
+        
+        // horizontal center double lines
+        ctx.moveTo(0, this.centerY - 2); ctx.lineTo(this.centerX - this.roadWidth/2, this.centerY - 2);
+        ctx.moveTo(this.centerX + this.roadWidth/2, this.centerY - 2); ctx.lineTo(this.width, this.centerY - 2);
+        ctx.moveTo(0, this.centerY + 2); ctx.lineTo(this.centerX - this.roadWidth/2, this.centerY + 2);
+        ctx.moveTo(this.centerX + this.roadWidth/2, this.centerY + 2); ctx.lineTo(this.width, this.centerY + 2);
         ctx.stroke();
-        ctx.setLineDash([]); // reset line dash
 
         // Stop Lines
         ctx.strokeStyle = '#fff';
@@ -1141,23 +1499,18 @@ class IntersectionSim {
         ctx.lineTo(this.centerX + this.roadWidth/2 + 8, this.centerY);
         ctx.stroke();
 
-        // Pedestrian Zebra Crosswalks
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-        // North Crosswalk
-        ctx.beginPath();
-        ctx.moveTo(this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2 - 25);
-        ctx.lineTo(this.centerX + this.roadWidth/2, this.centerY - this.roadWidth/2 - 25);
-        ctx.moveTo(this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2 - 35);
-        ctx.lineTo(this.centerX + this.roadWidth/2, this.centerY - this.roadWidth/2 - 35);
-        // South Crosswalk
-        ctx.moveTo(this.centerX - this.roadWidth/2, this.centerY + this.roadWidth/2 + 25);
-        ctx.lineTo(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2 + 25);
-        ctx.moveTo(this.centerX - this.roadWidth/2, this.centerY + this.roadWidth/2 + 35);
-        ctx.lineTo(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2 + 35);
-        ctx.stroke();
-        ctx.setLineDash([]); // Reset
+        // Pedestrian Zebra Crosswalks (thick white bars like a real city)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        // North Crosswalk: vertical bars
+        let northY = this.centerY - this.roadWidth/2 - 35;
+        for (let bx = this.centerX - this.roadWidth/2 + 5; bx < this.centerX + this.roadWidth/2 - 5; bx += 14) {
+            ctx.fillRect(bx, northY, 7, 15);
+        }
+        // South Crosswalk: vertical bars
+        let southY = this.centerY + this.roadWidth/2 + 20;
+        for (let bx = this.centerX - this.roadWidth/2 + 5; bx < this.centerX + this.roadWidth/2 - 5; bx += 14) {
+            ctx.fillRect(bx, southY, 7, 15);
+        }
 
         // Draw Congestion Heatmap Overlays (if active)
         if (this.heatmapActive) {
@@ -1200,9 +1553,10 @@ class IntersectionSim {
 
         // Draw Sensor Detection Bounds (Overlay in AI Mode)
         if (this.controlMode === 'AI') {
-            ctx.fillStyle = 'rgba(6, 182, 212, 0.03)';
-            ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
+            ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.07)';
             ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
             
             // North Sensor box
             ctx.fillRect(this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2 - 8 - this.sensorRange, this.roadWidth/2, this.sensorRange);
@@ -1211,14 +1565,16 @@ class IntersectionSim {
             // South Sensor box
             ctx.fillRect(this.centerX, this.centerY + this.roadWidth/2 + 8, this.roadWidth/2, this.sensorRange);
             ctx.strokeRect(this.centerX, this.centerY + this.roadWidth/2 + 8, this.roadWidth/2, this.sensorRange);
-
+ 
             // West Sensor box
             ctx.fillRect(this.centerX - this.roadWidth/2 - 8 - this.sensorRange, this.centerY, this.sensorRange, this.roadWidth/2);
             ctx.strokeRect(this.centerX - this.roadWidth/2 - 8 - this.sensorRange, this.centerY, this.sensorRange, this.roadWidth/2);
-
+ 
             // East Sensor box
             ctx.fillRect(this.centerX + this.roadWidth/2 + 8, this.centerY - this.roadWidth/2, this.sensorRange, this.roadWidth/2);
             ctx.strokeRect(this.centerX + this.roadWidth/2 + 8, this.centerY - this.roadWidth/2, this.sensorRange, this.roadWidth/2);
+            
+            ctx.setLineDash([]); // Reset
         }
 
         // Draw Labels for Roads
@@ -1230,13 +1586,13 @@ class IntersectionSim {
         ctx.save();
         ctx.translate(30, this.centerY + 55);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText("HOSTEL ZONE (W)", 0, 0);
+        ctx.fillText("RESIDENTIAL ZONE (W)", 0, 0);
         ctx.restore();
 
         ctx.save();
         ctx.translate(this.width - 20, this.centerY - 55);
         ctx.rotate(Math.PI / 2);
-        ctx.fillText("ACADEMIC BLK (E)", 0, 0);
+        ctx.fillText("FACULTY ZONE (E)", 0, 0);
         ctx.restore();
 
         // Draw Pedestrians
@@ -1320,6 +1676,49 @@ class IntersectionSim {
             this.weather = 'clear';
             this.rainDrops = [];
         }
+
+        // Draw and update speed camera flashes & floating speed labels
+        for (let i = this.cameraFlashes.length - 1; i >= 0; i--) {
+            let f = this.cameraFlashes[i];
+            
+            // 1. Draw Flash (expanding radial flash)
+            if (f.flashOpacity > 0.05) {
+                ctx.save();
+                let gradient = ctx.createRadialGradient(f.x, f.y, 2, f.x, f.y, 45);
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${f.flashOpacity})`);
+                gradient.addColorStop(0.3, `rgba(254, 240, 138, ${f.flashOpacity * 0.85})`);
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, 45, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                f.flashOpacity *= 0.72; // rapid flash decay
+            }
+            
+            // 2. Draw Floating Speed Text
+            if (f.textOpacity > 0.01) {
+                ctx.save();
+                ctx.fillStyle = `rgba(239, 68, 68, ${f.textOpacity})`; // Warning Red
+                ctx.strokeStyle = `rgba(15, 23, 42, ${f.textOpacity * 0.9})`; // Dark Outline
+                ctx.lineWidth = 2.5;
+                ctx.font = '800 10px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.strokeText(f.speedText, f.x, f.y - 18 - f.textYOffset);
+                ctx.fillText(f.speedText, f.x, f.y - 18 - f.textYOffset);
+                ctx.restore();
+                
+                f.textYOffset += 0.8 * this.simSpeed;
+                f.textOpacity -= 0.02 * this.simSpeed;
+            }
+            
+            // Decrement frame timer
+            f.timer -= this.simSpeed;
+            if (f.timer <= 0) {
+                this.cameraFlashes.splice(i, 1);
+            }
+        }
     }
 
     drawLightSoles(ctx) {
@@ -1388,13 +1787,13 @@ class IntersectionSim {
         // Draw green lawn patches in corners
         ctx.fillStyle = isLight ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.02)';
         // Top-left lawn
-        ctx.fillRect(0, 0, this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2);
+        ctx.fillRect(0, 0, this.centerX - this.roadWidth/2 - 12, this.centerY - this.roadWidth/2 - 12);
         // Top-right lawn
-        ctx.fillRect(this.centerX + this.roadWidth/2, 0, this.width - (this.centerX + this.roadWidth/2), this.centerY - this.roadWidth/2);
+        ctx.fillRect(this.centerX + this.roadWidth/2 + 12, 0, this.width - (this.centerX + this.roadWidth/2 + 12), this.centerY - this.roadWidth/2 - 12);
         // Bottom-left lawn
-        ctx.fillRect(0, this.centerY + this.roadWidth/2, this.centerX - this.roadWidth/2, this.height - (this.centerY + this.roadWidth/2));
+        ctx.fillRect(0, this.centerY + this.roadWidth/2 + 12, this.centerX - this.roadWidth/2 - 12, this.height - (this.centerY + this.roadWidth/2 + 12));
         // Bottom-right lawn
-        ctx.fillRect(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2, this.width - (this.centerX + this.roadWidth/2), this.height - (this.centerY + this.roadWidth/2));
+        ctx.fillRect(this.centerX + this.roadWidth/2 + 12, this.centerY + this.roadWidth/2 + 12, this.width - (this.centerX + this.roadWidth/2 + 12), this.height - (this.centerY + this.roadWidth/2 + 12));
 
         // Helper: Draw detailed vector tree
         const drawTree = (x, y) => {
@@ -1412,45 +1811,145 @@ class IntersectionSim {
             ctx.restore();
         };
 
-        // Helper: Draw Glassmorphic building
-        const drawBuilding = (x, y, w, h, title) => {
+        // Helper: Draw Glassmorphic building complex
+        const drawBuildingComplex = (x, y, w, h, title, bannerColor) => {
             ctx.save();
-            ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.65)';
+            
+            // Draw Main Tower shadow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(0, 0, 0, 0.3)';
+            
+            // 1. Draw Main Tower
+            ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.8)';
             ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)';
             ctx.lineWidth = 1.5;
             safeRoundRect(ctx, x, y, w, h, 6);
             ctx.fill();
             ctx.stroke();
+            ctx.shadowBlur = 0; // reset shadow
 
-            // Draw window arrays
-            ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.15)' : 'rgba(6, 182, 212, 0.2)';
-            ctx.lineWidth = 1;
-            for (let wx = x + 8; wx < x + w - 8; wx += 12) {
-                ctx.strokeRect(wx, y + 6, 6, 6);
-                ctx.strokeRect(wx, y + 16, 6, 6);
+            // 2. Draw Side Wing (overlapping block)
+            ctx.fillStyle = isLight ? 'rgba(241, 245, 249, 0.9)' : 'rgba(30, 41, 59, 0.75)';
+            safeRoundRect(ctx, x + w - 30, y + 10, 24, h - 10, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // 3. Draw Solar Panel grid on wing roof
+            ctx.fillStyle = 'rgba(30, 64, 175, 0.4)'; // blue solar tint
+            ctx.fillRect(x + w - 26, y + 14, 16, 6);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(x + w - 18, y + 14); ctx.lineTo(x + w - 18, y + 20);
+            ctx.moveTo(x + w - 26, y + 17); ctx.lineTo(x + w - 10, y + 17);
+            ctx.stroke();
+
+            // 4. Draw window grid (neon glow dots / lines)
+            ctx.fillStyle = isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(0, 242, 254, 0.35)';
+            for (let wx = x + 8; wx < x + w - 35; wx += 10) {
+                if (Math.random() < 0.95) {
+                    ctx.fillRect(wx, y + 6, 5, 5);
+                }
+                if (Math.random() < 0.95) {
+                    ctx.fillRect(wx, y + 16, 5, 5);
+                }
             }
 
-            // Title
-            ctx.fillStyle = isLight ? '#475569' : 'rgba(255, 255, 255, 0.5)';
-            ctx.font = 'bold 7px "Inter", sans-serif';
-            ctx.fillText(title, x + 8, y + h - 6);
+            // 5. Draw Heliport on main tower roof
+            ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.2)' : 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(x + 15, y + h - 10, 6, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.fillStyle = isLight ? '#64748b' : 'rgba(255,255,255,0.4)';
+            ctx.font = 'bold 6px "Inter"';
+            ctx.fillText("H", x + 13, y + h - 8);
+
+            // 6. Draw colored top indicator light (blinking)
+            let beaconPulse = Math.abs(Math.sin(Date.now() / 250));
+            ctx.fillStyle = bannerColor || '#ef4444';
+            ctx.shadowBlur = 8 * beaconPulse;
+            ctx.shadowColor = bannerColor || '#ef4444';
+            ctx.beginPath();
+            ctx.arc(x + w - 8, y + 4, 2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+
+            // 7. Title banner
+            ctx.fillStyle = isLight ? '#1e293b' : '#fff';
+            ctx.font = 'bold 7.5px "Inter", sans-serif';
+            ctx.fillText(title, x + 26, y + h - 8);
+            ctx.restore();
+        };
+
+        // Helper: Draw Glowing LED Billboard (Chandigarh University Advertisement Board)
+        const drawBillboard = (bx, by) => {
+            ctx.save();
+            
+            // Draw Support stand
+            ctx.strokeStyle = isLight ? '#475569' : '#94a3b8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(bx + 24, by + 15);
+            ctx.lineTo(bx + 24, by + 34);
+            ctx.stroke();
+            
+            // Draw Billboard background shadow
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = 'rgba(239, 68, 68, 0.4)'; // Red brand glow
+            
+            // Draw Frame
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#f59e0b'; // Gold border
+            ctx.lineWidth = 1.5;
+            safeRoundRect(ctx, bx, by, 48, 18, 3);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0; // reset
+            
+            // Draw LED screen content (glowing red background + gold text)
+            ctx.fillStyle = '#b91c1c'; // CU Crimson Red
+            ctx.fillRect(bx + 2, by + 2, 44, 14);
+            
+            // Scrolling/pulse effect text
+            let textPulse = Math.abs(Math.sin(Date.now() / 300));
+            ctx.fillStyle = `rgba(251, 191, 36, ${0.7 + textPulse * 0.3})`; // Gold text
+            ctx.font = '800 5.5px "Inter", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("CHANDIGARH", bx + 24, by + 8);
+            ctx.fillText("UNIVERSITY", bx + 24, by + 13);
+            
+            // Draw tiny blinking LED corner lights
+            ctx.fillStyle = Math.floor(Date.now() / 150) % 2 === 0 ? '#10b981' : '#f59e0b';
+            ctx.fillRect(bx + 1, by + 1, 1.5, 1.5);
+            ctx.fillRect(bx + 45.5, by + 1, 1.5, 1.5);
+            
             ctx.restore();
         };
 
         // 1. Top-Left Corner
-        drawBuilding(20, 20, 75, 36, "HOSTEL D BLOCK");
-        drawTree(120, 20); drawTree(120, 45); drawTree(30, 80); drawTree(55, 80);
-
+        drawBuildingComplex(20, 20, 85, 38, "RESIDENTIAL BLK A", '#3b82f6');
+        drawBuildingComplex(20, 70, 85, 30, "RESIDENTIAL BLK B", '#60a5fa');
+        drawBillboard(160, 22);
+        drawTree(115, 15); drawTree(115, 35); drawTree(120, 55); drawTree(120, 75); drawTree(120, 95);
+        drawTree(150, 110); drawTree(170, 120); drawTree(190, 110); drawTree(210, 120); drawTree(230, 110); drawTree(250, 120); drawTree(270, 110); drawTree(290, 120);
+ 
         // 2. Top-Right Corner
-        drawBuilding(this.width - 95, 20, 75, 36, "CENTRAL LIBRARY");
-        drawTree(this.width - 120, 20); drawTree(this.width - 120, 45); drawTree(this.width - 30, 80);
-
+        drawBuildingComplex(this.width - 105, 20, 85, 38, "CENTRAL LIB", '#10b981');
+        drawBuildingComplex(this.width - 105, 70, 85, 30, "STUDENT CENTER", '#34d399');
+        drawTree(this.width - 120, 15); drawTree(this.width - 120, 35); drawTree(this.width - 125, 55); drawTree(this.width - 125, 75); drawTree(this.width - 125, 95);
+        drawTree(650, 110); drawTree(630, 120); drawTree(610, 110); drawTree(590, 120); drawTree(570, 110); drawTree(550, 120); drawTree(530, 110); drawTree(510, 120);
+ 
         // 3. Bottom-Left Corner
-        drawBuilding(20, this.height - 56, 75, 36, "FACULTY COMPLEX");
-        drawTree(120, this.height - 40); drawTree(120, this.height - 20); drawTree(30, this.height - 80);
-
+        drawBuildingComplex(20, this.height - 58, 85, 38, "RESEARCH LABS", '#f59e0b');
+        drawBuildingComplex(20, this.height - 100, 85, 30, "AUDITORIUM", '#fbbf24');
+        drawTree(115, this.height - 55); drawTree(115, this.height - 35); drawTree(120, this.height - 15); drawTree(120, this.height - 75); drawTree(120, this.height - 95);
+        drawTree(150, 390); drawTree(170, 380); drawTree(190, 390); drawTree(210, 380); drawTree(230, 390); drawTree(250, 380); drawTree(270, 390); drawTree(290, 380);
+ 
         // 4. Bottom-Right Corner
-        drawBuilding(this.width - 95, this.height - 56, 75, 36, "ACADEMIC BLK 3");
-        drawTree(this.width - 120, this.height - 40); drawTree(this.width - 120, this.height - 20); drawTree(this.width - 30, this.height - 80);
+        drawBuildingComplex(this.width - 105, this.height - 58, 85, 38, "FACULTY RESIDENCY A", '#8b5cf6');
+        drawBuildingComplex(this.width - 105, this.height - 100, 85, 30, "FACULTY RESIDENCY B", '#a78bfa');
+        drawTree(this.width - 120, this.height - 55); drawTree(this.width - 120, this.height - 35); drawTree(this.width - 125, this.height - 15); drawTree(this.width - 125, this.height - 75); drawTree(this.width - 125, this.height - 95);
+        drawTree(650, 390); drawTree(630, 380); drawTree(610, 390); drawTree(590, 380); drawTree(570, 390); drawTree(550, 380); drawTree(530, 390); drawTree(510, 380);
     }
 }
