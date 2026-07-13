@@ -242,6 +242,12 @@
                             <line x1="17" y1="9" x2="23" y2="15"></line>
                         </svg>
                     </button>
+                    <!-- Heatmap Toggle Button -->
+                    <button class="heatmap-btn glass" id="btn-heatmap" title="Toggle Congestion Heatmap" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02); transition: var(--transition); outline: none; padding: 0; display: flex;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heatmap-icon" style="color: var(--text-primary); transition: color 0.2s;">
+                            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                        </svg>
+                    </button>
                     <div class="q-stat-card">
                         <span class="q-label">AI Status</span>
                         <span class="q-value text-success" id="ai-badge">ACTIVE</span>
@@ -428,6 +434,12 @@
                                     <button class="btn btn-outline" id="btn-spawn-bike" style="border-color: var(--success); color: var(--success); background: var(--success-alpha); display: inline-flex; align-items: center; gap: 0.5rem;">
                                         <i data-lucide="bike"></i> Spawn Student Bike
                                     </button>
+                                    <button class="btn btn-outline" id="btn-toggle-rush" style="border-color: var(--primary); color: var(--primary); background: var(--primary-alpha); display: inline-flex; align-items: center; gap: 0.5rem;" title="Simulate Rush Hour Surge">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="rush-icon">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                        </svg>
+                                        <span>Simulate Rush Hour</span>
+                                    </button>
                                 </div>
                                 <div class="speed-selector">
                                     <span>Sim Speed:</span>
@@ -458,8 +470,14 @@
                             </div>
                             
                             <div class="control-group">
-                                <div class="slider-label">
+                                <div class="slider-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                     <span>Traffic Generation (Density)</span>
+                                    <select id="select-traffic-preset" style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.75rem; outline: none; cursor: pointer; transition: var(--transition);">
+                                        <option value="custom" selected>Custom Slider</option>
+                                        <option value="low">Low (25%)</option>
+                                        <option value="medium">Medium (50%)</option>
+                                        <option value="heavy">Heavy (85%)</option>
+                                    </select>
                                 </div>
                                 <div class="lane-slider-item mt-2">
                                     <div class="slider-label">

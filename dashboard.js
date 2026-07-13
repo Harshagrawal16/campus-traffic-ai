@@ -589,6 +589,96 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 12. Bind Heatmap Actions
+    const btnHeatmap = document.getElementById('btn-heatmap');
+    if (btnHeatmap) {
+        btnHeatmap.addEventListener('click', () => {
+            document.body.classList.toggle('heatmap-on');
+            const isActive = document.body.classList.contains('heatmap-on');
+            
+            // Save preference to localStorage
+            localStorage.setItem('heatmap_preference', isActive ? 'on' : 'off');
+            
+            // Update icon color
+            const icon = btnHeatmap.querySelector('.heatmap-icon');
+            if (icon) {
+                icon.style.color = isActive ? '#f97316' : 'var(--text-primary)';
+            }
+            
+            // Update simulation state
+            if (simInstance) {
+                simInstance.heatmapActive = isActive;
+                if (isActive) {
+                    simInstance.logAIAction("🔴 Real-Time Congestion Heatmap overlay activated.", "system");
+                } else {
+                    simInstance.logAIAction("🟢 Congestion Heatmap deactivated.", "system");
+                }
+                renderLogs();
+            }
+        });
+        
+        // Restore saved heatmap preference
+        const savedHeatmap = localStorage.getItem('heatmap_preference');
+        if (savedHeatmap === 'on') {
+            document.body.classList.add('heatmap-on');
+            const icon = btnHeatmap.querySelector('.heatmap-icon');
+            if (icon) {
+                icon.style.color = '#f97316';
+            }
+            // Sync simulation state
+            setTimeout(() => {
+                if (simInstance) simInstance.heatmapActive = true;
+            }, 300);
+        }
+    }
+    
+    // 13. Bind Rush Hour Actions
+    const btnToggleRush = document.getElementById('btn-toggle-rush');
+    if (btnToggleRush) {
+        btnToggleRush.addEventListener('click', () => {
+            if (!simInstance) return;
+            
+            simInstance.rushHourActive = !simInstance.rushHourActive;
+            const isActive = simInstance.rushHourActive;
+            
+            // Update button visual styles
+            const icon = btnToggleRush.querySelector('.rush-icon');
+            const label = btnToggleRush.querySelector('span');
+            
+            if (isActive) {
+                btnToggleRush.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-hover))';
+                btnToggleRush.style.color = '#fff';
+                btnToggleRush.style.borderColor = 'transparent';
+                if (label) label.textContent = "Stop Rush Hour";
+                if (icon) icon.style.stroke = '#fff';
+                
+                simInstance.logAIAction("📈 Campus peak rush hour simulated! High-density vehicle arrivals initiated on all crossroads.", "warning");
+                
+                // Automatically resume simulation to show the rush
+                if (simInstance.isPaused) {
+                    simInstance.start();
+                    const btnPause = document.getElementById('btn-sim-pause');
+                    if (btnPause) {
+                        btnPause.querySelector('span').textContent = "Pause";
+                        const iconPause = btnPause.querySelector('i');
+                        if (iconPause && typeof lucide !== 'undefined') iconPause.setAttribute('data-lucide', 'pause');
+                    }
+                }
+            } else {
+                btnToggleRush.style.background = 'var(--primary-alpha)';
+                btnToggleRush.style.color = 'var(--primary)';
+                btnToggleRush.style.borderColor = 'var(--primary)';
+                if (label) label.textContent = "Simulate Rush Hour";
+                if (icon) icon.style.stroke = 'currentColor';
+                
+                simInstance.logAIAction("📉 Campus rush hour concluded. Traffic spawn rates returned to baseline.", "success");
+            }
+            
+            if (typeof lucide !== 'undefined') lucide.createImages();
+            renderLogs();
+        });
+    }
+    
     // Hook globally so simulation can trigger log rendering
     window.updateDashboardLogs = renderLogs;
     window.updateDashboardStats = updateStatsGauges;
@@ -810,7 +900,20 @@ function setupControls() {
     const btnAmbulance = document.getElementById('btn-spawn-ambulance');
     if (btnAmbulance) {
         btnAmbulance.addEventListener('click', () => {
-            if (simInstance) simInstance.spawnVehicle(null, 'ambulance');
+            if (simInstance) {
+                simInstance.spawnVehicle(null, 'ambulance');
+                // Automatically resume simulation to show emergency in action
+                if (simInstance.isPaused) {
+                    simInstance.start();
+                    const btnPause = document.getElementById('btn-sim-pause');
+                    if (btnPause) {
+                        btnPause.querySelector('span').textContent = "Pause";
+                        const icon = btnPause.querySelector('i');
+                        if (icon && typeof lucide !== 'undefined') icon.setAttribute('data-lucide', 'pause');
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createImages();
+                }
+            }
         });
     }
 
@@ -818,7 +921,20 @@ function setupControls() {
     const btnPed = document.getElementById('btn-spawn-pedestrian');
     if (btnPed) {
         btnPed.addEventListener('click', () => {
-            if (simInstance) simInstance.triggerPedestrianCrossing();
+            if (simInstance) {
+                simInstance.triggerPedestrianCrossing();
+                // Automatically resume simulation to show pedestrian action
+                if (simInstance.isPaused) {
+                    simInstance.start();
+                    const btnPause = document.getElementById('btn-sim-pause');
+                    if (btnPause) {
+                        btnPause.querySelector('span').textContent = "Pause";
+                        const icon = btnPause.querySelector('i');
+                        if (icon && typeof lucide !== 'undefined') icon.setAttribute('data-lucide', 'pause');
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createImages();
+                }
+            }
         });
     }
 
@@ -828,7 +944,17 @@ function setupControls() {
         btnBike.addEventListener('click', () => {
             if (simInstance) {
                 simInstance.spawnVehicle(null, 'bike');
-                showToast("Student Bike spawned successfully!", "success");
+                // Automatically resume simulation to show bike action
+                if (simInstance.isPaused) {
+                    simInstance.start();
+                    const btnPause = document.getElementById('btn-sim-pause');
+                    if (btnPause) {
+                        btnPause.querySelector('span').textContent = "Pause";
+                        const icon = btnPause.querySelector('i');
+                        if (icon && typeof lucide !== 'undefined') icon.setAttribute('data-lucide', 'pause');
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createImages();
+                }
             }
         });
     }
@@ -847,6 +973,43 @@ function setupControls() {
         });
     });
 
+    // Traffic Preset Selection Dropdown
+    const selectTrafficPreset = document.getElementById('select-traffic-preset');
+    if (selectTrafficPreset) {
+        selectTrafficPreset.addEventListener('change', () => {
+            let val = selectTrafficPreset.value;
+            if (val === 'custom') return;
+            
+            let targetPct = 50; // default medium
+            if (val === 'low') targetPct = 25;
+            if (val === 'heavy') targetPct = 85;
+            
+            const directionsList = ['north', 'south', 'east', 'west'];
+            directionsList.forEach(dir => {
+                const slider = document.getElementById(`slider-density-${dir}`);
+                const valueDisplay = document.getElementById(`val-density-${dir}`);
+                if (slider) {
+                    slider.value = targetPct;
+                    let uppercaseDir = dir.toUpperCase();
+                    if (simInstance) {
+                        simInstance.spawnProbability[uppercaseDir] = (targetPct / 4000);
+                    }
+                    
+                    let label = "Medium";
+                    if (targetPct < 30) label = `Low (${targetPct}%)`;
+                    else if (targetPct > 75) label = `Rush Hour (${targetPct}%)`;
+                    else label = `Medium (${targetPct}%)`;
+                    
+                    if (valueDisplay) valueDisplay.textContent = label;
+                }
+            });
+            
+            if (simInstance) {
+                simInstance.logAIAction(`Traffic preset changed to ${val.toUpperCase()} (${targetPct}% density).`, "system");
+            }
+        });
+    }
+
     // Lane Density Sliders
     const directionsList = ['north', 'south', 'east', 'west'];
     directionsList.forEach(dir => {
@@ -859,6 +1022,9 @@ function setupControls() {
                 if (simInstance) {
                     simInstance.spawnProbability[uppercaseDir] = (pct / 4000);
                 }
+                
+                // Reset select preset to custom
+                if (selectTrafficPreset) selectTrafficPreset.value = 'custom';
                 
                 let label = "Medium";
                 if (pct === 0) label = "OFF";

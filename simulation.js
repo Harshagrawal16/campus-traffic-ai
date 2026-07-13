@@ -208,7 +208,7 @@ class Vehicle {
         }
 
         // Check if out of canvas bounds
-        if (this.x < -100 || this.x > 900 || this.y < -100 || this.y > 600) {
+        if (this.x < -60 || this.x > 700 || this.y < -60 || this.y > 540) {
             this.active = false;
             this.hasExited = true;
         }
@@ -406,6 +406,8 @@ class IntersectionSim {
         this.controlMode = 'AI'; // 'AI' or 'FIXED'
         this.weather = 'clear';
         this.rainDrops = [];
+        this.heatmapActive = false;
+        this.rushHourActive = false;
         
         // AI Algorithm Constants
         this.sensorRange = 120; // pixels from stop line
@@ -517,7 +519,36 @@ class IntersectionSim {
     // Spawn regular car
     spawnVehicle(forcedLane = null, forcedType = 'car') {
         const directions = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
-        let lane = forcedLane || directions[Math.floor(Math.random() * directions.length)];
+        let lane = forcedLane;
+        
+        if (!lane) {
+            // Find a lane that is clear to spawn
+            let clearLanes = directions.filter(dir => {
+                let xTest, yTest;
+                if (dir === 'WEST') { xTest = -40; yTest = this.lanes.WEST.y; }
+                if (dir === 'EAST') { xTest = this.width + 40; yTest = this.lanes.EAST.y; }
+                if (dir === 'NORTH') { xTest = this.lanes.NORTH.x; yTest = -40; }
+                if (dir === 'SOUTH') { xTest = this.lanes.SOUTH.x; yTest = this.height + 40; }
+                
+                for (let v of this.vehicles) {
+                    if (v.lane === dir) {
+                        let dist = 0;
+                        if (dir === 'WEST') dist = Math.abs(v.x - xTest);
+                        if (dir === 'EAST') dist = Math.abs(v.x - xTest);
+                        if (dir === 'NORTH') dist = Math.abs(v.y - yTest);
+                        if (dir === 'SOUTH') dist = Math.abs(v.y - yTest);
+                        if (dist < 65) return false;
+                    }
+                }
+                return true;
+            });
+            
+            if (clearLanes.length > 0) {
+                lane = clearLanes[Math.floor(Math.random() * clearLanes.length)];
+            } else {
+                lane = directions[Math.floor(Math.random() * directions.length)]; // fallback
+            }
+        }
         
         let type = forcedType;
         let color = '#38bdf8'; // Default Cyan
@@ -539,6 +570,7 @@ class IntersectionSim {
             targetSpeed = 1.8 + Math.random() * 0.4;
             sizeWidth = 8;
             sizeLength = 18;
+            this.logAIAction(`🚲 Student rider spawned on ${this.lanes[lane].dirName}.`, 'system');
         } else if (type === 'shuttle' || (forcedType === 'car' && Math.random() < 0.12)) {
             // Heavy Campus Shuttle
             type = 'shuttle';
@@ -570,6 +602,7 @@ class IntersectionSim {
 
         // Prevent spawning directly on top of another car at the start line
         let spawnClear = true;
+        let blockingVehicle = null;
         for (let v of this.vehicles) {
             if (v.lane === lane) {
                 let dist = 0;
@@ -579,9 +612,19 @@ class IntersectionSim {
                 if (lane === 'SOUTH') dist = Math.abs(v.y - y);
                 if (dist < 60) {
                     spawnClear = false;
+                    blockingVehicle = v;
                     break;
                 }
             }
+        }
+
+        // If it's an ambulance, force it to spawn by removing the blocking vehicle if necessary
+        if (!spawnClear && type === 'ambulance') {
+            if (blockingVehicle) {
+                const idx = this.vehicles.indexOf(blockingVehicle);
+                if (idx > -1) this.vehicles.splice(idx, 1);
+            }
+            spawnClear = true;
         }
 
         if (spawnClear) {
@@ -670,6 +713,44 @@ class IntersectionSim {
         // Reduce timers on lights
         this.lights.NS.timer = Math.max(0, this.lights.NS.timer - simStepSeconds);
         this.lights.EW.timer = Math.max(0, this.lights.EW.timer - simStepSeconds);
+
+        // ------------------ PEDESTRIAN WALK PHASE CONTROLLER ------------------
+        if (this.pedestrianCrossingRequest) {
+            let activeGreenState = this.lights.NS.state === 'GREEN' ? 'NS' : (this.lights.EW.state === 'GREEN' ? 'EW' : null);
+            let timeInActiveGreen = activeGreenState === 'NS' ? this.lights.NS.timer : this.lights.EW.timer;
+            
+            // If green light is active, wait until it finishes to be safe, or trigger quick transition if in Manual/Fixed
+            let forceTransition = (this.controlMode !== 'AI') || (timeInActiveGreen <= 0);
+            
+            if (activeGreenState && forceTransition) {
+                if (activeGreenState === 'NS') {
+                    this.lights.NS.state = 'YELLOW';
+                    this.lights.NS.timer = 2.0; // quick yellow transition
+                } else {
+                    this.lights.EW.state = 'YELLOW';
+                    this.lights.EW.timer = 2.0;
+                }
+                this.logAIAction("Traffic coordinator triggering yellow phase for pedestrian safety.", "system");
+            } else if (this.lights.NS.state === 'YELLOW' && this.lights.NS.timer <= 0) {
+                this.lights.NS.state = 'RED';
+                this.pedestrianSignalState = 'WALK';
+                this.pedTimer = this.pedDuration;
+                this.spawnPedestrians();
+                this.logAIAction(`🛡️ Pedestrian Walk cycle activated for ${this.pedDuration}s. All cars stopped.`, 'system');
+            } else if (this.lights.EW.state === 'YELLOW' && this.lights.EW.timer <= 0) {
+                this.lights.EW.state = 'RED';
+                this.pedestrianSignalState = 'WALK';
+                this.pedTimer = this.pedDuration;
+                this.spawnPedestrians();
+                this.logAIAction(`🛡️ Pedestrian Walk cycle activated for ${this.pedDuration}s. All cars stopped.`, 'system');
+            } else if (this.lights.NS.state === 'RED' && this.lights.EW.state === 'RED' && this.pedestrianSignalState !== 'WALK') {
+                // If both are already red, trigger instantly!
+                this.pedestrianSignalState = 'WALK';
+                this.pedTimer = this.pedDuration;
+                this.spawnPedestrians();
+                this.logAIAction(`🛡️ Pedestrian Walk cycle activated for ${this.pedDuration}s. All cars stopped.`, 'system');
+            }
+        }
 
         // ------------------ CONTROL MODE: MANUAL OVERRIDE ------------------
         if (this.controlMode === 'MANUAL') {
@@ -767,25 +848,7 @@ class IntersectionSim {
             return; // emergency handles timing
         }
 
-        // ------------------ PEDESTRIAN WALK OVERRIDE ------------------
-        if (this.pedestrianCrossingRequest && this.controlMode === 'AI') {
-            // Trigger crossing when current vehicular phases finish or wait time gets long
-            let activeGreenState = this.lights.NS.state === 'GREEN' ? 'NS' : (this.lights.EW.state === 'GREEN' ? 'EW' : null);
-            let timeInActiveGreen = activeGreenState === 'NS' ? this.lights.NS.timer : this.lights.EW.timer;
-            
-            if (activeGreenState && timeInActiveGreen <= 0) {
-                // Time is up for active phase, trigger pedestrian crossing
-                if (activeGreenState === 'NS') {
-                    this.lights.NS.state = 'YELLOW';
-                    this.lights.NS.timer = 3.0;
-                } else {
-                    this.lights.EW.state = 'YELLOW';
-                    this.lights.EW.timer = 3.0;
-                }
-                this.logAIAction("AI Coordinator triggering yellow light to enable pedestrian path.", "ai");
-                return;
-            }
-        }
+
 
         // ------------------ CONTROL MODE: FIXED TIMERS ------------------
         if (this.controlMode === 'FIXED') {
@@ -892,7 +955,8 @@ class IntersectionSim {
         // Dynamic vehicle spawning loop per lane
         const directions = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
         for (let dir of directions) {
-            let prob = this.spawnProbability[dir] * this.simSpeed;
+            let rushFactor = this.rushHourActive ? 3.5 : 1.0;
+            let prob = this.spawnProbability[dir] * this.simSpeed * rushFactor;
             if (Math.random() < prob) {
                 this.spawnVehicle(dir);
             }
@@ -1011,6 +1075,9 @@ class IntersectionSim {
         ctx.fillRect(0, this.centerY + this.roadWidth/2, this.centerX - this.roadWidth/2, this.height); // Bottom Left
         ctx.fillRect(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2, this.width, this.height); // Bottom Right
 
+        // Draw Landscape structures & vegetation (Buildings & Trees)
+        this.drawLandscaping(ctx, isLight);
+
         // Draw Roads (Asphalt Gray)
         ctx.fillStyle = isLight ? '#94a3b8' : '#1e293b';
         ctx.fillRect(this.centerX - this.roadWidth/2, 0, this.roadWidth, this.height); // NS Road
@@ -1092,6 +1159,45 @@ class IntersectionSim {
         ctx.stroke();
         ctx.setLineDash([]); // Reset
 
+        // Draw Congestion Heatmap Overlays (if active)
+        if (this.heatmapActive) {
+            const directions = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
+            ctx.save();
+            for (let dir of directions) {
+                let count = this.countQueuedVehicles(dir).count;
+                let opacity = Math.min(0.6, count * 0.18);
+                if (count === 0) opacity = 0.05; // tiny faint green glow
+                
+                let glowColor = 'rgba(16, 185, 129, ' + (count === 0 ? 0.08 : 0.2) + ')'; // Green default
+                if (count >= 1 && count <= 2) {
+                    glowColor = `rgba(245, 158, 11, ${opacity})`; // Amber
+                } else if (count >= 3) {
+                    glowColor = `rgba(239, 68, 68, ${opacity})`; // Glowing Red
+                }
+                
+                ctx.fillStyle = glowColor;
+                
+                // Draw lane rectangles
+                if (dir === 'WEST') {
+                    // WEST inbound: x=0 to stopX, y=centerY to centerY + roadWidth/2
+                    ctx.fillRect(0, this.centerY, this.lanes.WEST.stopX, this.roadWidth/2);
+                }
+                if (dir === 'EAST') {
+                    // EAST inbound: x=stopX to width, y=centerY - roadWidth/2 to centerY
+                    ctx.fillRect(this.lanes.EAST.stopX, this.centerY - this.roadWidth/2, this.width - this.lanes.EAST.stopX, this.roadWidth/2);
+                }
+                if (dir === 'NORTH') {
+                    // NORTH inbound: x=centerX - roadWidth/2 to centerX, y=0 to stopY
+                    ctx.fillRect(this.centerX - this.roadWidth/2, 0, this.roadWidth/2, this.lanes.NORTH.stopY);
+                }
+                if (dir === 'SOUTH') {
+                    // SOUTH inbound: x=centerX to centerX + roadWidth/2, y=stopY to height
+                    ctx.fillRect(this.centerX, this.lanes.SOUTH.stopY, this.roadWidth/2, this.height - this.lanes.SOUTH.stopY);
+                }
+            }
+            ctx.restore();
+        }
+
         // Draw Sensor Detection Bounds (Overlay in AI Mode)
         if (this.controlMode === 'AI') {
             ctx.fillStyle = 'rgba(6, 182, 212, 0.03)';
@@ -1148,10 +1254,19 @@ class IntersectionSim {
 
         // Draw Pedestrian crossing warning light on post
         if (this.pedestrianCrossingRequest) {
+            ctx.save();
             ctx.fillStyle = this.pedestrianSignalState === 'WALK' ? '#10b981' : '#f59e0b';
+            if (this.pedestrianSignalState !== 'WALK') {
+                ctx.shadowBlur = 8 + Math.sin(Date.now() / 120) * 6;
+                ctx.shadowColor = '#f59e0b';
+            } else {
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#10b981';
+            }
             ctx.beginPath();
             ctx.arc(this.centerX - this.roadWidth/2 - 25, this.centerY - this.roadWidth/2 - 30, 6, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -1246,7 +1361,7 @@ class IntersectionSim {
             // Yellow
             ctx.fillStyle = (lightObj.state === 'YELLOW') ? '#f59e0b' : '#78350f';
             if (lightObj.state === 'YELLOW') {
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 10 + Math.sin(Date.now() / 80) * 8;
                 ctx.shadowColor = '#f59e0b';
             }
             ctx.beginPath();
@@ -1267,5 +1382,75 @@ class IntersectionSim {
 
             ctx.restore();
         }
+    }
+
+    drawLandscaping(ctx, isLight) {
+        // Draw green lawn patches in corners
+        ctx.fillStyle = isLight ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.02)';
+        // Top-left lawn
+        ctx.fillRect(0, 0, this.centerX - this.roadWidth/2, this.centerY - this.roadWidth/2);
+        // Top-right lawn
+        ctx.fillRect(this.centerX + this.roadWidth/2, 0, this.width - (this.centerX + this.roadWidth/2), this.centerY - this.roadWidth/2);
+        // Bottom-left lawn
+        ctx.fillRect(0, this.centerY + this.roadWidth/2, this.centerX - this.roadWidth/2, this.height - (this.centerY + this.roadWidth/2));
+        // Bottom-right lawn
+        ctx.fillRect(this.centerX + this.roadWidth/2, this.centerY + this.roadWidth/2, this.width - (this.centerX + this.roadWidth/2), this.height - (this.centerY + this.roadWidth/2));
+
+        // Helper: Draw detailed vector tree
+        const drawTree = (x, y) => {
+            ctx.save();
+            ctx.fillStyle = isLight ? '#92400e' : '#78350f'; // Trunk brown
+            ctx.fillRect(x - 2, y, 4, 8);
+            ctx.fillStyle = isLight ? '#10b981' : '#059669'; // Leaves base
+            ctx.beginPath();
+            ctx.arc(x, y - 2, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = isLight ? '#34d399' : '#10b981'; // Leaves highlight
+            ctx.beginPath();
+            ctx.arc(x - 2, y - 4, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        };
+
+        // Helper: Draw Glassmorphic building
+        const drawBuilding = (x, y, w, h, title) => {
+            ctx.save();
+            ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.65)';
+            ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1.5;
+            safeRoundRect(ctx, x, y, w, h, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw window arrays
+            ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.15)' : 'rgba(6, 182, 212, 0.2)';
+            ctx.lineWidth = 1;
+            for (let wx = x + 8; wx < x + w - 8; wx += 12) {
+                ctx.strokeRect(wx, y + 6, 6, 6);
+                ctx.strokeRect(wx, y + 16, 6, 6);
+            }
+
+            // Title
+            ctx.fillStyle = isLight ? '#475569' : 'rgba(255, 255, 255, 0.5)';
+            ctx.font = 'bold 7px "Inter", sans-serif';
+            ctx.fillText(title, x + 8, y + h - 6);
+            ctx.restore();
+        };
+
+        // 1. Top-Left Corner
+        drawBuilding(20, 20, 75, 36, "HOSTEL D BLOCK");
+        drawTree(120, 20); drawTree(120, 45); drawTree(30, 80); drawTree(55, 80);
+
+        // 2. Top-Right Corner
+        drawBuilding(this.width - 95, 20, 75, 36, "CENTRAL LIBRARY");
+        drawTree(this.width - 120, 20); drawTree(this.width - 120, 45); drawTree(this.width - 30, 80);
+
+        // 3. Bottom-Left Corner
+        drawBuilding(20, this.height - 56, 75, 36, "FACULTY COMPLEX");
+        drawTree(120, this.height - 40); drawTree(120, this.height - 20); drawTree(30, this.height - 80);
+
+        // 4. Bottom-Right Corner
+        drawBuilding(this.width - 95, this.height - 56, 75, 36, "ACADEMIC BLK 3");
+        drawTree(this.width - 120, this.height - 40); drawTree(this.width - 120, this.height - 20); drawTree(this.width - 30, this.height - 80);
     }
 }
