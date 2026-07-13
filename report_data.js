@@ -2,31 +2,29 @@
 
 const PROJECT_REPORT_DATA = {
     abstract: `
-        <div class="report-doc" id="rep-abstract">
-            <!-- Academic Title Page -->
-            <div class="title-page-print" style="text-align: center; padding: 3rem 0; page-break-after: always;">
-                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: none; padding-bottom: 0;">AI-BASED SMART TRAFFIC CONTROL SYSTEM FOR CAMPUS PREMISES</h1>
-                <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 3rem;">A Project Report submitted in partial fulfillment of the requirements for the award of the Degree of</p>
-                <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 3rem; color: #fff;">BACHELOR OF COMPUTER APPLICATIONS (BCA)</h2>
-                
-                <div style="margin-bottom: 3rem;">
-                    <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Submitted By:</p>
-                    <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH GOYAL</p>
-                    <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: O23BCA110212</p>
-                    <p style="font-size: 1rem; color: var(--text-muted); margin-top: 0.5rem;">Chandigarh University Online</p>
-                </div>
-
-                <div style="margin-top: 4rem;">
-                    <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2023 - 2026</p>
-                </div>
+        <!-- Academic Title Page -->
+        <div class="title-page-print" style="text-align: center; padding: 3rem 0; page-break-after: always;">
+            <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: none; padding-bottom: 0;">AI-BASED SMART TRAFFIC CONTROL SYSTEM FOR CAMPUS PREMISES</h1>
+            <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 3rem;">A Project Report submitted in partial fulfillment of the requirements for the award of the Degree of</p>
+            <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 3rem; color: #fff;">BACHELOR OF COMPUTER APPLICATIONS (BCA)</h2>
+            
+            <div style="margin-bottom: 3rem;">
+                <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Submitted By:</p>
+                <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH GOYAL</p>
+                <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: O23BCA110212</p>
+                <p style="font-size: 1rem; color: var(--text-muted); margin-top: 0.5rem;">Chandigarh University Online</p>
             </div>
 
-            <!-- Abstract Core -->
-            <div style="page-break-after: always; padding: 2rem 0;">
-                <h2 style="text-align: center; font-size: 1.8rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; margin-bottom: 2.5rem;">ABSTRACT</h2>
-                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">Traditional traffic control systems rely on pre-programmed, fixed-time cycles that do not account for real-time variations in traffic density. This limitation is particularly prominent in educational institution premises, where traffic flow is highly dynamic and characterized by short, intense peak hours (class changeovers, morning arrival, evening exit) and high pedestrian volumes. This project proposes an <strong>AI-Based Smart Traffic Control System</strong> designed specifically for university/college campuses to optimize vehicle throughput, minimize student and staff wait times, and guarantee pedestrian safety.</p>
-                <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">The system leverages simulated edge-cameras and sensor inputs to measure vehicle queue lengths on four primary campus routes (Main Gate, Library Road, Academic Block, and Hostel Zone). A queue-clearing optimization algorithm dynamically schedules green light durations based on a cost function incorporating queue length and maximum vehicle wait time. An integrated emergency pre-emption module provides instant priority overrides for campus emergency vehicles (e.g., ambulances). A prototype simulation is developed in HTML5 Canvas and ES6 JavaScript. The evaluation demonstrates a <strong>35% to 45% reduction in average wait times</strong>, and a significant decrease in carbon emissions from idling vehicles compared to standard fixed-timer systems, proving the efficiency of adaptive traffic management in structured micro-environments.</p>
+            <div style="margin-top: 4rem;">
+                <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2023 - 2026</p>
             </div>
+        </div>
+
+        <!-- Abstract Core -->
+        <div class="report-doc" id="rep-abstract" style="page-break-after: always; padding: 2rem 0;">
+            <h2 style="text-align: center; font-size: 1.8rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; margin-bottom: 2.5rem;">ABSTRACT</h2>
+            <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">Traditional traffic control systems rely on pre-programmed, fixed-time cycles that do not account for real-time variations in traffic density. This limitation is particularly prominent in educational institution premises, where traffic flow is highly dynamic and characterized by short, intense peak hours (class changeovers, morning arrival, evening exit) and high pedestrian volumes. This project proposes an <strong>AI-Based Smart Traffic Control System</strong> designed specifically for university/college campuses to optimize vehicle throughput, minimize student and staff wait times, and guarantee pedestrian safety.</p>
+            <p style="text-align: justify; line-height: 1.8; text-indent: 1.5rem;">The system leverages simulated edge-cameras and sensor inputs to measure vehicle queue lengths on four primary campus routes (Main Gate, Library Road, Academic Block, and Hostel Zone). A queue-clearing optimization algorithm dynamically schedules green light durations based on a cost function incorporating queue length and maximum vehicle wait time. An integrated emergency pre-emption module provides instant priority overrides for campus emergency vehicles (e.g., ambulances). A prototype simulation is developed in HTML5 Canvas and ES6 JavaScript. The evaluation demonstrates a <strong>35% to 45% reduction in average wait times</strong>, and a significant decrease in carbon emissions from idling vehicles compared to standard fixed-timer systems, proving the efficiency of adaptive traffic management in structured micro-environments.</p>
         </div>
     `,
     ch1: `
