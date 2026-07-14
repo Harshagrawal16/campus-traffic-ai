@@ -85,6 +85,26 @@ window.triggerSpeedFlash = function(x, y, speedKmh) {
     }
 };
 
+window.speakAnnouncement = function(text) {
+    const isMuted = document.body && document.body.classList.contains('audio-muted');
+    if (isMuted) return;
+    
+    if ('speechSynthesis' in window) {
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.02; // natural pace
+            utterance.pitch = 1.0;
+            const voices = window.speechSynthesis.getVoices();
+            const voice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Microsoft')));
+            if (voice) utterance.voice = voice;
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            console.warn("AI Voice announcement failed:", e);
+        }
+    }
+};
+
 // Utility for cross-browser rounded rectangle compatibility
 function safeRoundRect(ctx, x, y, width, height, radius) {
     if (typeof ctx.roundRect === 'function') {
@@ -102,6 +122,50 @@ function safeRoundRect(ctx, x, y, width, height, radius) {
         ctx.quadraticCurveTo(x, y, x + radius, y);
     }
 }
+
+// Helper to draw realistic top-down walking human figures (shoulders, head, hands, caps)
+function drawTopDownPerson(ctx, x, y, angle, bodyColor, radius) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    // Subtle drop shadow for realistic volume
+    ctx.shadowBlur = 3;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+
+    // Shoulders (jacket/shirt color)
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.arc(-radius * 0.5, 0, radius * 0.45, 0, Math.PI * 2); // left shoulder
+    ctx.arc(radius * 0.5, 0, radius * 0.45, 0, Math.PI * 2); // right shoulder
+    ctx.fill();
+    ctx.fillRect(-radius * 0.5, -radius * 0.45, radius * 1.0, radius * 0.9); // torso fill
+
+    // Reset shadow for details
+    ctx.shadowBlur = 0;
+
+    // Hands (skin tone)
+    ctx.fillStyle = '#f3c6a5';
+    ctx.beginPath();
+    ctx.arc(-radius * 0.85, radius * 0.1, radius * 0.22, 0, Math.PI * 2); // left hand
+    ctx.arc(radius * 0.85, radius * 0.1, radius * 0.22, 0, Math.PI * 2); // right hand
+    ctx.fill();
+
+    // Head (skin tone base)
+    ctx.fillStyle = '#f3c6a5';
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.52, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hair or Cap (dark styling)
+    ctx.fillStyle = '#27272a';
+    ctx.beginPath();
+    ctx.arc(0, -radius * 0.08, radius * 0.45, Math.PI, 0); // half dome cap/hair
+    ctx.fill();
+
+    ctx.restore();
+}
+
 
 class TrafficLight {
     constructor(direction, x, y) {
@@ -486,7 +550,11 @@ class Pedestrian {
         this.targetX = targetX;
         this.speed = 1.0;
         this.radius = 4;
-        this.color = '#a7f3d0'; // Mint
+        
+        // Randomize clothing colors for students crossing the road
+        const clothingColors = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#e11d48'];
+        this.color = clothingColors[Math.floor(Math.random() * clothingColors.length)];
+        
         this.active = true;
         this.waiting = true;
     }
@@ -516,14 +584,8 @@ class Pedestrian {
     }
 
     draw(ctx) {
-        ctx.save();
-        ctx.fillStyle = this.color;
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        let angle = (this.startSide === 'LEFT') ? 0 : Math.PI;
+        drawTopDownPerson(ctx, this.x, this.y, angle, this.color, this.radius);
     }
 }
 
@@ -555,12 +617,13 @@ class SidewalkPedestrian {
     }
 
     draw(ctx) {
-        ctx.save();
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        let angle = 0;
+        if (this.lane === 'NS') {
+            angle = (this.direction === 1) ? Math.PI / 2 : -Math.PI / 2;
+        } else {
+            angle = (this.direction === 1) ? 0 : Math.PI;
+        }
+        drawTopDownPerson(ctx, this.x, this.y, angle, this.color, this.radius);
     }
 }
 
@@ -702,7 +765,12 @@ class IntersectionSim {
     }
 
     start() {
+        if (!this.isPaused && this.animationId) return; // Prevent duplicate loops
         this.isPaused = false;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
         this.loop();
     }
 
@@ -827,6 +895,9 @@ class IntersectionSim {
             this.emergencyLane = lane;
             this.logAIAction(`🚨 Emergency detected on ${this.lanes[lane].dirName}! Priority cycle requested.`, 'danger');
             if (window.sirenSynth) window.sirenSynth.start();
+            if (window.speakAnnouncement) {
+                window.speakAnnouncement(`Alert! Emergency vehicle detected on ${this.lanes[lane].dirName}. Pre-empting signal sequence.`);
+            }
         } else if (type === 'bike') {
             // Student bicycle/motorcycle rider
             const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
@@ -926,6 +997,9 @@ class IntersectionSim {
         if (this.pedestrianCrossingRequest) return; // already pending
         this.pedestrianCrossingRequest = true;
         this.logAIAction("Pedestrian button pressed on Academic crosswalk. Active signal queue updated.", "ai");
+        if (window.speakAnnouncement) {
+            window.speakAnnouncement("Pedestrian crossing request received. Safety priority walk sequence initiated.");
+        }
     }
 
     forceNSGreen() {
@@ -1795,21 +1869,6 @@ class IntersectionSim {
         // Bottom-right lawn
         ctx.fillRect(this.centerX + this.roadWidth/2 + 12, this.centerY + this.roadWidth/2 + 12, this.width - (this.centerX + this.roadWidth/2 + 12), this.height - (this.centerY + this.roadWidth/2 + 12));
 
-        // Helper: Draw detailed vector tree
-        const drawTree = (x, y) => {
-            ctx.save();
-            ctx.fillStyle = isLight ? '#92400e' : '#78350f'; // Trunk brown
-            ctx.fillRect(x - 2, y, 4, 8);
-            ctx.fillStyle = isLight ? '#10b981' : '#059669'; // Leaves base
-            ctx.beginPath();
-            ctx.arc(x, y - 2, 7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = isLight ? '#34d399' : '#10b981'; // Leaves highlight
-            ctx.beginPath();
-            ctx.arc(x - 2, y - 4, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        };
 
         // Helper: Draw Glassmorphic building complex
         const drawBuildingComplex = (x, y, w, h, title, bannerColor) => {
@@ -1927,29 +1986,49 @@ class IntersectionSim {
             ctx.restore();
         };
 
-        // 1. Top-Left Corner
+        // 1. Top-Left Corner (Residential & Academic Zone)
         drawBuildingComplex(20, 20, 85, 38, "RESIDENTIAL BLK A", '#3b82f6');
         drawBuildingComplex(20, 70, 85, 30, "RESIDENTIAL BLK B", '#60a5fa');
+        drawBuildingComplex(20, 120, 85, 30, "LECTURE HALL 1", '#3b82f6');
+        drawBuildingComplex(130, 20, 80, 35, "COMP-SCI BLOCK", '#3b82f6');
+        drawBuildingComplex(130, 70, 80, 30, "BIO-TECH LAB", '#6366f1');
+        drawBuildingComplex(130, 120, 80, 30, "LECTURE HALL 2", '#6366f1');
+        drawBuildingComplex(230, 20, 85, 35, "ADMIN BLOCK", '#00f2fe');
+        drawBuildingComplex(230, 70, 85, 30, "SPORTS COMPLEX", '#8b5cf6');
+        drawBuildingComplex(230, 120, 85, 30, "CAMPUS CAFE", '#ec4899');
         drawBillboard(160, 22);
-        drawTree(115, 15); drawTree(115, 35); drawTree(120, 55); drawTree(120, 75); drawTree(120, 95);
-        drawTree(150, 110); drawTree(170, 120); drawTree(190, 110); drawTree(210, 120); drawTree(230, 110); drawTree(250, 120); drawTree(270, 110); drawTree(290, 120);
  
-        // 2. Top-Right Corner
+        // 2. Top-Right Corner (Library & Basic Sciences Zone)
         drawBuildingComplex(this.width - 105, 20, 85, 38, "CENTRAL LIB", '#10b981');
         drawBuildingComplex(this.width - 105, 70, 85, 30, "STUDENT CENTER", '#34d399');
-        drawTree(this.width - 120, 15); drawTree(this.width - 120, 35); drawTree(this.width - 125, 55); drawTree(this.width - 125, 75); drawTree(this.width - 125, 95);
-        drawTree(650, 110); drawTree(630, 120); drawTree(610, 110); drawTree(590, 120); drawTree(570, 110); drawTree(550, 120); drawTree(530, 110); drawTree(510, 120);
+        drawBuildingComplex(this.width - 105, 120, 85, 30, "POST OFFICE", '#10b981');
+        drawBuildingComplex(585, 20, 85, 35, "DENTAL CLINIC", '#059669');
+        drawBuildingComplex(585, 70, 85, 30, "NURSING DEPT", '#059669');
+        drawBuildingComplex(585, 120, 85, 30, "PHYSICS DEPT", '#047857');
+        drawBuildingComplex(480, 20, 85, 35, "MBA BLOCK", '#10b981');
+        drawBuildingComplex(480, 70, 85, 30, "PHARMACY LAB", '#34d399');
+        drawBuildingComplex(480, 120, 85, 30, "CHEMISTRY DEPT", '#047857');
  
-        // 3. Bottom-Left Corner
+        // 3. Bottom-Left Corner (Research & Incubation Zone)
         drawBuildingComplex(20, this.height - 58, 85, 38, "RESEARCH LABS", '#f59e0b');
         drawBuildingComplex(20, this.height - 100, 85, 30, "AUDITORIUM", '#fbbf24');
-        drawTree(115, this.height - 55); drawTree(115, this.height - 35); drawTree(120, this.height - 15); drawTree(120, this.height - 75); drawTree(120, this.height - 95);
-        drawTree(150, 390); drawTree(170, 380); drawTree(190, 390); drawTree(210, 380); drawTree(230, 390); drawTree(250, 380); drawTree(270, 390); drawTree(290, 380);
+        drawBuildingComplex(20, 330, 85, 30, "INNOVATION HUB", '#fbbf24');
+        drawBuildingComplex(130, this.height - 58, 80, 38, "DESIGN STUDIOS", '#b45309');
+        drawBuildingComplex(130, this.height - 100, 80, 30, "STARTUP CELL", '#fbbf24');
+        drawBuildingComplex(130, 330, 80, 30, "AI CENTER", '#f59e0b');
+        drawBuildingComplex(230, this.height - 58, 85, 38, "WORKSHOP BLDG", '#d97706');
+        drawBuildingComplex(230, this.height - 100, 85, 30, "E-CELL OFFICE", '#f59e0b');
+        drawBuildingComplex(230, 330, 85, 30, "ROBOTICS LAB", '#d97706');
  
-        // 4. Bottom-Right Corner
-        drawBuildingComplex(this.width - 105, this.height - 58, 85, 38, "FACULTY RESIDENCY A", '#8b5cf6');
-        drawBuildingComplex(this.width - 105, this.height - 100, 85, 30, "FACULTY RESIDENCY B", '#a78bfa');
-        drawTree(this.width - 120, this.height - 55); drawTree(this.width - 120, this.height - 35); drawTree(this.width - 125, this.height - 15); drawTree(this.width - 125, this.height - 75); drawTree(this.width - 125, this.height - 95);
-        drawTree(650, 390); drawTree(630, 380); drawTree(610, 390); drawTree(590, 380); drawTree(570, 390); drawTree(550, 380); drawTree(530, 390); drawTree(510, 380);
+        // 4. Bottom-Right Corner (Faculty & Guest Residency Zone)
+        drawBuildingComplex(this.width - 105, this.height - 58, 85, 38, "FACULTY RES A", '#8b5cf6');
+        drawBuildingComplex(this.width - 105, this.height - 100, 85, 30, "FACULTY RES B", '#a78bfa');
+        drawBuildingComplex(this.width - 105, 330, 85, 30, "GUEST HOUSE", '#8b5cf6');
+        drawBuildingComplex(585, this.height - 58, 85, 38, "RECTORS SUITE", '#7c3aed');
+        drawBuildingComplex(585, this.height - 100, 85, 30, "DINING HALL C", '#7c3aed');
+        drawBuildingComplex(585, 330, 85, 30, "STAFF CLUB", '#a78bfa');
+        drawBuildingComplex(480, this.height - 58, 85, 38, "OFFICERS HOSTEL", '#6d28d9');
+        drawBuildingComplex(480, this.height - 100, 85, 30, "HEALTH CENTRE", '#8b5cf6');
+        drawBuildingComplex(480, 330, 85, 30, "SENATE HALL", '#6d28d9');
     }
 }

@@ -270,7 +270,7 @@ body {
 .header-title h1 {
     font-size: 1.4rem;
     font-weight: 800;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .subtitle {
@@ -391,7 +391,7 @@ body {
     font-size: 1.8rem;
     font-weight: 700;
     font-family: var(--font-mono);
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
 
@@ -425,7 +425,7 @@ body {
 .card-title-bar h3 {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .badge {
@@ -569,7 +569,7 @@ body {
 }
 
 .log-entry.system { border-color: var(--text-muted); }
-.log-entry.ai { border-color: var(--cyan); color: #fff; }
+.log-entry.ai { border-color: var(--cyan); color: var(--text-primary); }
 .log-entry.success { border-color: var(--success); color: rgba(16, 185, 129, 0.85); }
 .log-entry.danger { border-color: var(--danger); color: rgba(239, 68, 68, 0.85); }
 
@@ -790,7 +790,7 @@ body {
 
 .simulation-sidebar h3 {
     font-size: 1.1rem;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 hr {
@@ -863,7 +863,7 @@ hr {
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 0.35rem 0.5rem;
-    color: #fff;
+    color: var(--text-primary);
     font-family: var(--font-mono);
     width: 60px;
     outline: none;
@@ -1051,7 +1051,7 @@ hr {
 }
 
 .math-content p strong {
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .math-block {
@@ -1061,7 +1061,7 @@ hr {
     padding: 0.75rem;
     font-family: var(--font-mono);
     text-align: center;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0.5rem 0;
     font-size: 0.95rem;
 }
@@ -1092,7 +1092,7 @@ hr {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 1rem;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .report-toc ul {
@@ -1153,7 +1153,7 @@ hr {
 
 /* Styled Report Documents */
 .report-doc {
-    color: #d1d5db;
+    color: var(--text-primary);
     line-height: 1.7;
     font-size: 0.95rem;
     max-width: 800px;
@@ -1163,7 +1163,7 @@ hr {
 .report-doc h1 {
     font-size: 2.2rem;
     font-weight: 800;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
     border-bottom: 2px solid var(--primary);
     padding-bottom: 1rem;
@@ -1172,7 +1172,7 @@ hr {
 .report-doc h2 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin-top: 2.5rem;
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);

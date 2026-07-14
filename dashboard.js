@@ -170,6 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Start/Resume the simulation loop upon successful login
                 if (simInstance) {
                     simInstance.start();
+                    if (window.speakAnnouncement) {
+                        window.speakAnnouncement(`Access granted. Welcome, ${displayName}. AI traffic scheduling core online.`);
+                    }
                     
                     // Reset Play/Pause button layout
                     const btnPause = document.getElementById('btn-sim-pause');
@@ -694,10 +697,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnToggleRush.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-hover))';
                 btnToggleRush.style.color = '#fff';
                 btnToggleRush.style.borderColor = 'transparent';
-                if (label) label.textContent = "Stop Rush Hour";
+                if (label) label.textContent = "Conclude Rush Hour";
                 if (icon) icon.style.stroke = '#fff';
                 
                 simInstance.logAIAction("📈 Campus peak rush hour simulated! High-density vehicle arrivals initiated on all crossroads.", "warning");
+                if (window.speakAnnouncement) {
+                    window.speakAnnouncement("Attention: Rush hour mode activated. Campus traffic density is high. AI scheduling is adapting green light durations.");
+                }
                 
                 // Automatically resume simulation to show the rush
                 if (simInstance.isPaused) {
@@ -717,6 +723,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (icon) icon.style.stroke = 'currentColor';
                 
                 simInstance.logAIAction("📉 Campus rush hour concluded. Traffic spawn rates returned to baseline.", "success");
+                if (window.speakAnnouncement) {
+                    window.speakAnnouncement("Campus rush hour concluded. Traffic spawn rates returned to baseline.");
+                }
             }
             
             if (typeof lucide !== 'undefined') lucide.createImages();
@@ -856,6 +865,10 @@ function setupControls() {
             if (simInstance) {
                 simInstance.controlMode = 'AI';
                 simInstance.logAIAction("System switched to AI Adaptive Mode manually.", "system");
+                if (window.speakAnnouncement) {
+                    window.speakAnnouncement("AI adaptive scheduling engine enabled.");
+                }
+                if (simInstance.isPaused) simInstance.draw();
             }
         });
         
@@ -867,6 +880,10 @@ function setupControls() {
             if (simInstance) {
                 simInstance.controlMode = 'FIXED';
                 simInstance.logAIAction("System switched to Fixed Pre-timed Mode manually.", "system");
+                if (window.speakAnnouncement) {
+                    window.speakAnnouncement("Switching to fixed interval timer mode.");
+                }
+                if (simInstance.isPaused) simInstance.draw();
             }
         });
 
@@ -878,6 +895,10 @@ function setupControls() {
             if (simInstance) {
                 simInstance.controlMode = 'MANUAL';
                 simInstance.logAIAction("System switched to Manual Override Mode. Use buttons to force signals.", "system");
+                if (window.speakAnnouncement) {
+                    window.speakAnnouncement("Manual signal override active.");
+                }
+                if (simInstance.isPaused) simInstance.draw();
             }
         });
     }
@@ -1144,7 +1165,10 @@ function setupControls() {
     if (sliderSensorRange) {
         sliderSensorRange.addEventListener('input', () => {
             let meters = parseInt(sliderSensorRange.value);
-            if (simInstance) simInstance.sensorRange = meters;
+            if (simInstance) {
+                simInstance.sensorRange = meters;
+                if (simInstance.isPaused) simInstance.draw();
+            }
             if (valSensorRange) valSensorRange.textContent = `${meters}m`;
         });
     }
