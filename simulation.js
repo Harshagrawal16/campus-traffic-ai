@@ -278,10 +278,10 @@ class Vehicle {
 
         // Apply physics
         if (this.speed < targetVelocity) {
-            this.speed = Math.min(targetVelocity, this.speed + 0.05 * simSpeed);
+            this.speed = Math.min(targetVelocity, this.speed + actualAccel);
             this.isBraking = false;
         } else if (this.speed > targetVelocity) {
-            this.speed = Math.max(targetVelocity, this.speed - 0.08 * simSpeed);
+            this.speed = Math.max(targetVelocity, this.speed - actualDecel);
             this.isBraking = true;
         } else {
             this.isBraking = (this.speed < 0.1);
@@ -884,13 +884,13 @@ class IntersectionSim {
         
         let type = forcedType;
         let color = '#38bdf8'; // Default Cyan
-        let targetSpeed = 1.6 + Math.random() * 0.6; // random target speed
+        let targetSpeed = 2.4 + Math.random() * 0.8; // random target speed (Increased from 1.6)
         let sizeWidth = 15;
         let sizeLength = 26;
 
         if (type === 'ambulance') {
             color = '#ef4444'; // Red base for Emergency
-            targetSpeed = 2.8;
+            targetSpeed = 4.2; // Increased from 2.8
             this.emergencyActive = true;
             this.emergencyLane = lane;
             this.logAIAction(`🚨 Emergency detected on ${this.lanes[lane].dirName}! Priority cycle requested.`, 'danger');
@@ -902,7 +902,7 @@ class IntersectionSim {
             // Student bicycle/motorcycle rider
             const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
             color = colors[Math.floor(Math.random() * colors.length)];
-            targetSpeed = 1.8 + Math.random() * 0.4;
+            targetSpeed = 2.8 + Math.random() * 0.6; // Increased from 1.8
             sizeWidth = 8;
             sizeLength = 18;
             this.logAIAction(`🚲 Student rider spawned on ${this.lanes[lane].dirName}.`, 'system');
@@ -910,7 +910,7 @@ class IntersectionSim {
             // Heavy Campus Shuttle
             type = 'shuttle';
             color = '#f59e0b'; // Amber shuttle
-            targetSpeed = 1.2;
+            targetSpeed = 1.8; // Increased from 1.2
             sizeWidth = 19;
             sizeLength = 40;
         } else if (forcedType === 'car') {
@@ -920,14 +920,14 @@ class IntersectionSim {
                 type = 'bike';
                 const colors = ['#f43f5e', '#10b981', '#fb7185', '#60a5fa', '#a7f3d0'];
                 color = colors[Math.floor(Math.random() * colors.length)];
-                targetSpeed = 1.8 + Math.random() * 0.4;
+                targetSpeed = 2.8 + Math.random() * 0.6; // Increased from 1.8
                 sizeWidth = 8;
                 sizeLength = 18;
             } else if (rand < 0.28) {
                 // Spawn an auto-rickshaw (auto)
                 type = 'auto';
                 color = '#fbbf24'; // Yellow-green
-                targetSpeed = 1.4 + Math.random() * 0.4;
+                targetSpeed = 2.2 + Math.random() * 0.5; // Increased from 1.4
                 sizeWidth = 14;
                 sizeLength = 22;
             } else if (rand < 0.38) {
@@ -935,7 +935,7 @@ class IntersectionSim {
                 type = 'cycle';
                 const colors = ['#f43f5e', '#10b981', '#fb7185', '#3b82f6', '#c084fc'];
                 color = colors[Math.floor(Math.random() * colors.length)];
-                targetSpeed = 0.8 + Math.random() * 0.4;
+                targetSpeed = 1.3 + Math.random() * 0.4; // Increased from 0.8
                 sizeWidth = 6;
                 sizeLength = 16;
             } else {
@@ -1941,51 +1941,6 @@ class IntersectionSim {
             ctx.restore();
         };
 
-        // Helper: Draw Glowing LED Billboard (Chandigarh University Advertisement Board)
-        const drawBillboard = (bx, by) => {
-            ctx.save();
-            
-            // Draw Support stand
-            ctx.strokeStyle = isLight ? '#475569' : '#94a3b8';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(bx + 24, by + 15);
-            ctx.lineTo(bx + 24, by + 34);
-            ctx.stroke();
-            
-            // Draw Billboard background shadow
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = 'rgba(239, 68, 68, 0.4)'; // Red brand glow
-            
-            // Draw Frame
-            ctx.fillStyle = '#1e293b';
-            ctx.strokeStyle = '#f59e0b'; // Gold border
-            ctx.lineWidth = 1.5;
-            safeRoundRect(ctx, bx, by, 48, 18, 3);
-            ctx.fill();
-            ctx.stroke();
-            ctx.shadowBlur = 0; // reset
-            
-            // Draw LED screen content (glowing red background + gold text)
-            ctx.fillStyle = '#b91c1c'; // CU Crimson Red
-            ctx.fillRect(bx + 2, by + 2, 44, 14);
-            
-            // Scrolling/pulse effect text
-            let textPulse = Math.abs(Math.sin(Date.now() / 300));
-            ctx.fillStyle = `rgba(251, 191, 36, ${0.7 + textPulse * 0.3})`; // Gold text
-            ctx.font = '800 5.5px "Inter", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText("CHANDIGARH", bx + 24, by + 8);
-            ctx.fillText("UNIVERSITY", bx + 24, by + 13);
-            
-            // Draw tiny blinking LED corner lights
-            ctx.fillStyle = Math.floor(Date.now() / 150) % 2 === 0 ? '#10b981' : '#f59e0b';
-            ctx.fillRect(bx + 1, by + 1, 1.5, 1.5);
-            ctx.fillRect(bx + 45.5, by + 1, 1.5, 1.5);
-            
-            ctx.restore();
-        };
-
         // 1. Top-Left Corner (Residential & Academic Zone)
         drawBuildingComplex(20, 20, 85, 38, "RESIDENTIAL BLK A", '#3b82f6');
         drawBuildingComplex(20, 70, 85, 30, "RESIDENTIAL BLK B", '#60a5fa');
@@ -1996,7 +1951,6 @@ class IntersectionSim {
         drawBuildingComplex(230, 20, 85, 35, "ADMIN BLOCK", '#00f2fe');
         drawBuildingComplex(230, 70, 85, 30, "SPORTS COMPLEX", '#8b5cf6');
         drawBuildingComplex(230, 120, 85, 30, "CAMPUS CAFE", '#ec4899');
-        drawBillboard(160, 22);
  
         // 2. Top-Right Corner (Library & Basic Sciences Zone)
         drawBuildingComplex(this.width - 105, 20, 85, 38, "CENTRAL LIB", '#10b981');

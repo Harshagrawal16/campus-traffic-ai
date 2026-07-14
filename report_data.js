@@ -3,20 +3,30 @@
 const PROJECT_REPORT_DATA = {
     abstract: `
         <!-- Academic Title Page -->
-        <div class="title-page-print" style="text-align: center; padding: 3rem 0; page-break-after: always;">
-            <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: none; padding-bottom: 0;">AI-BASED SMART TRAFFIC CONTROL SYSTEM FOR CAMPUS PREMISES</h1>
-            <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 3rem;">A Project Report submitted in partial fulfillment of the requirements for the award of the Degree of</p>
-            <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 3rem; color: #fff;">BACHELOR OF COMPUTER APPLICATIONS (BCA)</h2>
+        <div class="title-page-print" style="text-align: center; padding: 3.5rem 1.5rem; margin-bottom: 3rem; border-radius: 20px; border: 1px solid var(--border-color); background: rgba(15, 22, 38, 0.25); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); page-break-after: always;">
+            <div style="display: inline-block; padding: 0.35rem 0.80rem; border-radius: 20px; font-size: 0.72rem; font-weight: 800; letter-spacing: 1.5px; background: var(--primary-glow); color: var(--primary); border: 1px solid var(--primary); margin-bottom: 2rem; text-transform: uppercase;">
+                Final Year Graduation Project Thesis
+            </div>
             
-            <div style="margin-bottom: 3rem;">
-                <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Submitted By:</p>
-                <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">HARSH GOYAL</p>
-                <p style="font-size: 0.95rem; color: var(--text-muted);">Enrollment No: O23BCA110212</p>
-                <p style="font-size: 1rem; color: var(--text-muted); margin-top: 0.5rem;">Chandigarh University Online</p>
+            <h1 style="font-size: 2.3rem; font-weight: 800; line-height: 1.35; margin-bottom: 1.5rem; border-bottom: none; padding-bottom: 0; color: var(--text-primary);">AI-BASED SMART TRAFFIC CONTROL SYSTEM FOR CAMPUS PREMISES</h1>
+            
+            <p style="font-size: 1.05rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 2.5rem auto; line-height: 1.5;">A Project Report submitted in partial fulfillment of the requirements for the award of the Degree of</p>
+            
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 3.5rem;">BACHELOR OF COMPUTER APPLICATIONS (BCA)</h2>
+            
+            <div style="max-width: 320px; margin: 0 auto 3rem auto; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02); text-align: left;">
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Submitted By:</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); margin-bottom: 0.35rem;">HARSH GOYAL</div>
+                <div style="font-size: 0.92rem; color: var(--text-primary); font-family: var(--font-mono); margin-bottom: 0.6rem;">Enrollment No: O23BCA110212</div>
+                
+                <hr style="margin: 0.75rem 0; border: none; height: 1px; background: var(--border-color);" />
+                
+                <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-primary);">Chandigarh University Online</div>
             </div>
 
-            <div style="margin-top: 4rem;">
-                <p style="font-size: 1rem; font-weight: bold; margin-top: 1rem;">Academic Year: 2023 - 2026</p>
+            <div style="margin-top: 2rem;">
+                <span style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px; margin-right: 0.5rem;">Academic Year:</span>
+                <span style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono);">2023 - 2026</span>
             </div>
         </div>
 
